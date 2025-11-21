@@ -1,0 +1,70 @@
+#-----------------------------------------------------------
+# Vivado v2018.3 (64-bit)
+# SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+# IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+# Start of session at: Wed Nov 19 20:35:33 2025
+# Process ID: 3972
+# Current directory: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent43340 C:\Users\Conor\Desktop\zynq_fpga\FPGA-41843-master\FPGA-41843-master\vgatest.xpr
+# Log file: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vivado.log
+# Journal file: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master\vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.xpr
+update_compile_order -fileset sources_1
+open_hw
+connect_hw_server
+open_hw_target
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+current_hw_device [get_hw_devices xc7z020_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7z020_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+program_hw_devices [get_hw_devices xc7z020_0]
+refresh_hw_device [lindex [get_hw_devices xc7z020_0] 0]
+export_ip_user_files -of_objects  [get_files C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/palette_lut.v] -no_script -reset -force -quiet
+remove_files  C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/palette_lut.v
+file delete -force C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/palette_lut.v
+reset_run synth_1
+launch_runs impl_1 -to_step write_bitstream -jobs 24
+wait_on_run impl_1
+disconnect_hw_server localhost:3121
+connect_hw_server
+open_hw_target
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+current_hw_device [get_hw_devices xc7z020_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7z020_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+program_hw_devices [get_hw_devices xc7z020_0]
+set_property PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+program_hw_devices [get_hw_devices xc7z020_0]
+refresh_hw_device [lindex [get_hw_devices xc7z020_0] 0]
+disconnect_hw_server localhost:3121
+connect_hw_server
+open_hw_target
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+current_hw_device [get_hw_devices xc7z020_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7z020_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+program_hw_devices [get_hw_devices xc7z020_0]
+refresh_hw_device [lindex [get_hw_devices xc7z020_0] 0]
+reset_run synth_1
+launch_runs impl_1 -to_step write_bitstream -jobs 24
+wait_on_run impl_1
+set_property PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+program_hw_devices [get_hw_devices xc7z020_0]
+refresh_hw_device [lindex [get_hw_devices xc7z020_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7z020_0]
+set_property PROGRAM.FILE {C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/impl_1/vga_colorbar.bit} [get_hw_devices xc7z020_0]
+program_hw_devices [get_hw_devices xc7z020_0]
+refresh_hw_device [lindex [get_hw_devices xc7z020_0] 0]

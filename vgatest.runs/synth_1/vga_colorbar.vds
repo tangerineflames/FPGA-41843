@@ -1,0 +1,199 @@
+#-----------------------------------------------------------
+# Vivado v2018.3 (64-bit)
+# SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+# IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+# Start of session at: Sat Nov 22 00:43:07 2025
+# Process ID: 32248
+# Current directory: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1
+# Command line: vivado.exe -log vga_colorbar.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source vga_colorbar.tcl
+# Log file: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1/vga_colorbar.vds
+# Journal file: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1\vivado.jou
+#-----------------------------------------------------------
+source vga_colorbar.tcl -notrace
+Command: synth_design -top vga_colorbar -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: Launching helper process for spawning children vivado processes
+INFO: Helper process launched with PID 37276 
+WARNING: [Synth 8-2507] parameter declaration becomes local in scene_cross with formal parameter declaration list [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/scene_cross.v:131]
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:01 ; elapsed = 00:00:02 . Memory (MB): peak = 481.449 ; gain = 107.613
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'vga_colorbar' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/vga_colorbar.v:2]
+INFO: [Synth 8-6157] synthesizing module 'clk_wiz_0' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1/.Xil/Vivado-32248-LAPTOP-BRRA12UD/realtime/clk_wiz_0_stub.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'clk_wiz_0' (1#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1/.Xil/Vivado-32248-LAPTOP-BRRA12UD/realtime/clk_wiz_0_stub.v:5]
+INFO: [Synth 8-6157] synthesizing module 'tick_anim' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/tick_anim.v:1]
+	Parameter DIV_ANIM bound to: 833333 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'tick_anim' (2#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/tick_anim.v:1]
+INFO: [Synth 8-6157] synthesizing module 'key_filter' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/key_filter.v:3]
+	Parameter CLK_HZ bound to: 100000000 - type: integer 
+	Parameter DEBOUNCE_MS bound to: 20 - type: integer 
+	Parameter ACTIVE_LOW bound to: 1 - type: integer 
+	Parameter CNT_MAX bound to: 1999999 - type: integer 
+	Parameter W bound to: 21 - type: integer 
+	Parameter S_IDLE bound to: 2'b00 
+	Parameter S_WAIT_PRESS bound to: 2'b01 
+	Parameter S_PRESSED bound to: 2'b10 
+	Parameter S_WAIT_REL bound to: 2'b11 
+INFO: [Synth 8-226] default block is never used [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/key_filter.v:64]
+WARNING: [Synth 8-6014] Unused sequential element stable_press_reg was removed.  [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/key_filter.v:59]
+INFO: [Synth 8-6155] done synthesizing module 'key_filter' (3#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/key_filter.v:3]
+INFO: [Synth 8-6157] synthesizing module 'Periodchange' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/Periodchange.v:1]
+	Parameter MORNING_PEAK bound to: 2'b00 
+	Parameter NORMAL bound to: 2'b01 
+	Parameter EVENING_PEAK bound to: 2'b10 
+INFO: [Synth 8-6155] done synthesizing module 'Periodchange' (4#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/Periodchange.v:1]
+INFO: [Synth 8-6157] synthesizing module 'uart_rx' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/uart_rt.v:2]
+	Parameter CLK_HZ bound to: 25175000 - type: integer 
+	Parameter BAUD bound to: 115200 - type: integer 
+	Parameter OSR bound to: 16 - type: integer 
+	Parameter DIV bound to: 13 - type: integer 
+WARNING: [Synth 8-5788] Register sh_reg in module uart_rx is has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/uart_rt.v:57]
+INFO: [Synth 8-6155] done synthesizing module 'uart_rx' (5#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/uart_rt.v:2]
+INFO: [Synth 8-6157] synthesizing module 'traffic_count_map' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/traffic_count_map.v:1]
+	Parameter UP_MORNING_PEAK bound to: 6 - type: integer 
+	Parameter UP_NORMAL bound to: 3 - type: integer 
+	Parameter UP_EVENING_PEAK bound to: 6 - type: integer 
+	Parameter DN_MORNING_PEAK bound to: 6 - type: integer 
+	Parameter DN_NORMAL bound to: 3 - type: integer 
+	Parameter DN_EVENING_PEAK bound to: 6 - type: integer 
+	Parameter PEOPLE_MORNING_PEAK bound to: 7 - type: integer 
+	Parameter PEOPLE_NORMAL bound to: 2 - type: integer 
+	Parameter PEOPLE_EVENING_PEAK bound to: 7 - type: integer 
+	Parameter MORNING_PEAK bound to: 2'b00 
+	Parameter NORMAL bound to: 2'b01 
+	Parameter EVENING_PEAK bound to: 2'b10 
+INFO: [Synth 8-6155] done synthesizing module 'traffic_count_map' (6#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/traffic_count_map.v:1]
+INFO: [Synth 8-6157] synthesizing module 'ped_sensor' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/ped_sensor.v:2]
+	Parameter Y_TOP bound to: 10'b0010111110 
+	Parameter Y_BOTTOM bound to: 10'b0100110110 
+	Parameter WAIT_MARGIN bound to: 10'b0000001000 
+	Parameter CLEAR_MARGIN bound to: 10'b0000000100 
+	Parameter R bound to: 10'b0000000101 
+	Parameter MAX_PEOPLE bound to: 32 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'ped_sensor' (7#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/ped_sensor.v:2]
+INFO: [Synth 8-6157] synthesizing module 'traffic_ctrl_adaptive' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/traffic_ctrl_adaptive.v:2]
+	Parameter CLK_HZ bound to: 25175000 - type: integer 
+	Parameter MIN_GREEN_S bound to: 3 - type: integer 
+	Parameter MAX_GREEN_S bound to: 12 - type: integer 
+	Parameter YELLOW_S bound to: 1 - type: integer 
+	Parameter ALL_RED_S bound to: 1 - type: integer 
+	Parameter GAP_S bound to: 1 - type: integer 
+	Parameter FAST_RELEASE bound to: 1 - type: integer 
+	Parameter S_MG bound to: 3'b000 
+	Parameter S_MY bound to: 3'b001 
+	Parameter S_AR1 bound to: 3'b010 
+	Parameter S_SG bound to: 3'b011 
+	Parameter S_SY bound to: 3'b100 
+	Parameter S_AR2 bound to: 3'b101 
+	Parameter MIN_GREEN_C bound to: 75525000 - type: integer 
+	Parameter MAX_GREEN_C bound to: 302100000 - type: integer 
+	Parameter YELLOW_C bound to: 25175000 - type: integer 
+	Parameter ALL_RED_C bound to: 25175000 - type: integer 
+	Parameter GAP_C bound to: 25175000 - type: integer 
+INFO: [Synth 8-155] case statement is not full and has no default [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/traffic_ctrl_adaptive.v:85]
+INFO: [Synth 8-6155] done synthesizing module 'traffic_ctrl_adaptive' (8#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/traffic_ctrl_adaptive.v:2]
+INFO: [Synth 8-6157] synthesizing module 'scene_anim' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/scene_anim.v:3]
+	Parameter HMAX bound to: 10'b1001111111 
+	Parameter VMAX bound to: 10'b0111011111 
+	Parameter CAR_X0 bound to: 10'b0000001010 
+	Parameter PED_Y0 bound to: 10'b0000010100 
+	Parameter CAR_DEF bound to: 4'b0010 
+	Parameter PED_DEF bound to: 4'b0001 
+	Parameter Y_TOP bound to: 10'b0010111110 
+	Parameter Y_BOTTOM bound to: 10'b0100110110 
+	Parameter PED_WAIT_Y bound to: 10'b0010101100 
+INFO: [Synth 8-6155] done synthesizing module 'scene_anim' (9#1) [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/scene_anim.v:3]
+INFO: [Synth 8-6157] synthesizing module 'vga_pic' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/vga_pic.v:3]
+	Parameter BLACK bound to: 16'b0000000000000000 
+	Parameter WHITE bound to: 16'b1111111111111111 
+	Parameter YELLOW bound to: 16'b1111111111100000 
+	Parameter RED bound to: 16'b1111100000000000 
+	Parameter GREEN bound to: 16'b0000011111100000 
+	Parameter MORNING_PEAK bound to: 2'b00 
+	Parameter NORMAL bound to: 2'b01 
+	Parameter EVENING_PEAK bound to: 2'b10 
+	Parameter H_VALID bound to: 10'b1010000000 
+	Parameter V_VALID bound to: 10'b0111100000 
+	Parameter Y_TOP bound to: 10'b0010111110 
+	Parameter Y_BOTTOM bound to: 10'b0100110110 
+	Parameter SIDE_H bound to: 10'b0000000011 
+	Parameter MID_H bound to: 10'b0000000010 
+	Parameter ROAD_H bound to: 10'b0001111000 
+	Parameter LANE_STEP bound to: 10'b0000011110 
+	Parameter Y_MID bound to: 10'b0011111010 
+	Parameter Y_LANE1 bound to: 10'b0011011100 
+	Parameter Y_LANE2 bound to: 10'b0011111010 
+	Parameter Y_LANE3 bound to: 10'b0100011000 
+	Parameter H_DASH_PERIOD bound to: 10'b0001000000 
+	Parameter H_DASH_ON bound to: 10'b0000011000 
+	Parameter X_LEFT bound to: 10'b0100101100 
+	Parameter X_RIGHT bound to: 10'b0101010100 
+	Parameter V_SIDE_W bound to: 10'b0000000011 
+	Parameter X_MID bound to: 10'b0101000000 
+	Parameter V_DASH_PERIOD bound to: 10'b0001000000 
+	Parameter V_DASH_ON bound to: 10'b0000011000 
+	Parameter N_UP bound to: 15 - type: integer 
+	Parameter N_DN bound to: 15 - type: integer 
+	Parameter SP_BASE bound to: 96 - type: integer 
+	Parameter CAR_W bound to: 10'b0000010100 
+	Parameter CAR_H bound to: 10'b0000001100 
+	Parameter UP_Y_MIN bound to: 10'b0011000100 
+	Parameter UP_Y_MAX bound to: 10'b0011110000 
+	Parameter DN_Y_MIN bound to: 10'b0011111110 
+	Parameter DN_Y_MAX bound to: 10'b0100101110 
+	Parameter UP_LANE0_Y bound to: 10'b0011001101 
+	Parameter UP_LANE1_Y bound to: 10'b0011101011 
+	Parameter DN_LANE0_Y bound to: 10'b0100001001 
+	Parameter DN_LANE1_Y bound to: 10'b0100100111 
+	Parameter STOP_X_L bound to: 10'b0100010011 
+	Parameter STOP_X_R bound to: 10'b0101101101 
+	Parameter NEAR_WIN bound to: 10'b0000001010 
+	Parameter QUEUE_GAP bound to: 10'b0000000100 
+	Parameter PED_R bound to: 10'b0000000101 
+	Parameter PED_MARGIN bound to: 10'b0000000111 
+	Parameter INNER_L bound to: 10'b0100110011 
+	Parameter INNER_R bound to: 10'b0101001101 
+	Parameter INNER_W bound to: 10'b0000011010 
+	Parameter LAMP_W bound to: 10'b0000001110 
+	Parameter LAMP_H bound to: 10'b0000001110 
+	Parameter CAR_LAMP_X0 bound to: 10'b0100111001 
+	Parameter CAR_LAMP_X1 bound to: 10'b0101000111 
+	Parameter CAR_LAMP_Y0 bound to: 10'b0011110011 
+	Parameter CAR_LAMP_Y1 bound to: 10'b0100000001 
+	Parameter PED_LAMP_X0 bound to: 10'b0101011010 
+	Parameter PED_LAMP_X1 bound to: 10'b0101101000 
+	Parameter PED_LAMP_Y0 bound to: 10'b0010101010 
+	Parameter PED_LAMP_Y1 bound to: 10'b0010111000 
+	Parameter MAX_PED bound to: 32 - type: integer 
+	Parameter CHAR_W bound to: 8 - type: integer 
+	Parameter CHAR_H bound to: 8 - type: integer 
+	Parameter SPACE_W bound to: 1 - type: integer 
+	Parameter TEXT_X bound to: 10'b0000001000 
+	Parameter TEXT_PEOPLE_Y bound to: 10'b0000100000 
+	Parameter TEXT_CAR_Y bound to: 42 - type: integer 
+	Parameter TEXT_WALK_Y bound to: 52 - type: integer 
+	Parameter TEXT_EFF_Y bound to: 62 - type: integer 
+	Parameter TEXT_PEOPLE_LEN bound to: 7 - type: integer 
+	Parameter PEOPLE_NUM_X bound to: 71 - type: integer 
+	Parameter TEXT_CAR_LEN bound to: 4 - type: integer 
+	Parameter CAR_NUM_X bound to: 44 - type: integer 
+	Parameter TEXT_WALK_LEN bound to: 9 - type: integer 
+	Parameter WALK_NUM_CHARS bound to: 3 - type: integer 
+	Parameter WALK_NUM_X bound to: 89 - type: integer 
+	Parameter TEXT_EFF_LEN bound to: 11 - type: integer 
+	Parameter EFF_NUM_CHARS bound to: 4 - type: integer 
+	Parameter EFF_NUM_X bound to: 107 - type: integer 
+ERROR: [Synth 8-660] unable to resolve 'dn_spacing' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/vga_pic.v:296]
+ERROR: [Synth 8-6156] failed synthesizing module 'vga_pic' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/vga_pic.v:3]
+ERROR: [Synth 8-6156] failed synthesizing module 'vga_colorbar' [C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/vga_colorbar.v:2]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:02 ; elapsed = 00:00:03 . Memory (MB): peak = 530.078 ; gain = 156.242
+---------------------------------------------------------------------------------
+RTL Elaboration failed
+INFO: [Common 17-83] Releasing license: Synthesis
+24 Infos, 3 Warnings, 0 Critical Warnings and 4 Errors encountered.
+synth_design failed
+ERROR: [Common 17-69] Command failed: Synthesis failed - please see the console or run log file for details
+INFO: [Common 17-206] Exiting Vivado at Sat Nov 22 00:43:16 2025...
