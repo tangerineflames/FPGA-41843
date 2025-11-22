@@ -300,6 +300,10 @@ uart_rx #(
         .side_G   (side_G),
         .car_speed(car_speed),
         .ped_speed(ped_speed),
+        
+        .people_count  (people_count),
+        .ped_phase_step(10'd16), 
+        
         .car_x    (car_x),
         .ped_y    (ped_y)
     );

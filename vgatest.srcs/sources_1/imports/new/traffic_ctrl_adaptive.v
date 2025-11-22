@@ -180,7 +180,6 @@ module traffic_ctrl_adaptive #(
                     end
                 end
 
-                // ==================== 辅路绿 ====================
                 S_SG: begin
                     case (mode)
                         NORMAL: begin
@@ -197,7 +196,8 @@ module traffic_ctrl_adaptive #(
                                     gap_cnt   <= 32'd0;
                                     sec_div   <= 32'd0;
                                 end
-                            end else if (phase_cnt >= MAX_GREEN_C) begin
+                            end else if ((phase_cnt >= MAX_GREEN_C) && !in_crossing) begin
+                                // 最长绿灯也要等行人走完才切
                                 state     <= S_SY;
                                 phase_cnt <= 32'd0;
                                 gap_cnt   <= 32'd0;
@@ -206,8 +206,8 @@ module traffic_ctrl_adaptive #(
                         end
 
                         MORNING_PEAK: begin
-                            // 早高峰：支路绿固定 MORN_SIDE_S 秒
-                            if (phase_cnt >= MORN_SIDE_C) begin
+                            // ★ 早高峰：至少 MORN_SIDE_S 秒，且行人全部通过(in_crossing==0)才切黄
+                            if ((phase_cnt >= MORN_SIDE_C) && !in_crossing) begin
                                 state     <= S_SY;
                                 phase_cnt <= 32'd0;
                                 gap_cnt   <= 32'd0;
@@ -216,8 +216,8 @@ module traffic_ctrl_adaptive #(
                         end
 
                         EVENING_PEAK: begin
-                            // 晚高峰：支路绿固定 EVEN_SIDE_S 秒
-                            if (phase_cnt >= EVEN_SIDE_C) begin
+                            //  晚高峰：至少 EVEN_SIDE_S 秒，且行人全部通过才切黄
+                            if ((phase_cnt >= EVEN_SIDE_C) && !in_crossing) begin
                                 state     <= S_SY;
                                 phase_cnt <= 32'd0;
                                 gap_cnt   <= 32'd0;

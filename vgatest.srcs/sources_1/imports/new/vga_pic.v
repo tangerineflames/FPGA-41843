@@ -138,9 +138,11 @@ module vga_pic(
     wire [4:0] zebra_band  = zebra_rel_y[6:2];
     
     // 让偶数 band 画白，奇数 band 不画（4 行白、4 行黑交替）
-    wire zebra_on =
-        in_zebra_zone &&
-        (zebra_band[0] == 1'b0);
+// 4 行白 + 12 行黑：band[1:0] == 2'b00 时才画白
+wire zebra_on =
+    in_zebra_zone &&
+    (zebra_band[1:0] == 2'b00);
+
 
     
     wire v_mid_band= 1'b0;
