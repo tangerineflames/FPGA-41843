@@ -73,7 +73,14 @@ module vga_pic(
     localparam V_SIDE_W = 10'd3;
     localparam X_MID  = (X_LEFT + X_RIGHT) >> 1;
     localparam V_DASH_PERIOD = 10'd64, V_DASH_ON = 10'd24;
-    
+    // 斑马线参数：在人行道内部画一条条横向白条
+    localparam [9:0] ZEBRA_X_L    = X_LEFT  + 10'd4;  // 内缩一点，别贴边
+    localparam [9:0] ZEBRA_X_R    = X_RIGHT - 10'd4;
+    localparam [9:0] ZEBRA_Y_TOP  = Y_TOP;
+    localparam [9:0] ZEBRA_Y_BOT  = Y_BOTTOM;
+    localparam [9:0] ZEBRA_STRIPE_H = 10'd4;   // 每条白条高度
+    localparam [9:0] ZEBRA_PERIOD   = 10'd12;  // 条之间间隔周期
+
     // 锟洁车锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟诫）
     localparam integer N_UP = 15, N_DN = 15;
     localparam integer SP_BASE = 96;
@@ -119,7 +126,23 @@ module vga_pic(
     wire h_mid_band   = (pix_y >= (Y_LANE2 - MID_H)) && (pix_y <= (Y_LANE2 + MID_H)); // 中间那条
     wire h_lane3_band = (pix_y >= (Y_LANE3 - MID_H)) && (pix_y <= (Y_LANE3 + MID_H));
     wire h_dash_on    = ((pix_x % H_DASH_PERIOD) < H_DASH_ON);
+    
+    wire in_zebra_zone =
+        (pix_x >= ZEBRA_X_L) && (pix_x <= ZEBRA_X_R) &&
+        (pix_y >= ZEBRA_Y_TOP) && (pix_y <= ZEBRA_Y_BOT);
 
+    // 相对高度（只在 Y_TOP~Y_BOTTOM 有意义，外面 in_zebra_zone=0）
+    wire [9:0] zebra_rel_y = pix_y - ZEBRA_Y_TOP;
+    
+    // 每 4 行算一个"band"：右移 2 位，相当于除以 4
+    wire [4:0] zebra_band  = zebra_rel_y[6:2];
+    
+    // 让偶数 band 画白，奇数 band 不画（4 行白、4 行黑交替）
+    wire zebra_on =
+        in_zebra_zone &&
+        (zebra_band[0] == 1'b0);
+
+    
     wire v_mid_band= 1'b0;
     wire v_dash_on = 1'b0; 
 
@@ -944,11 +967,13 @@ endfunction
             // 中心分界线：双向之间的黄色虚线（保留你原来的效果）
             if (h_mid_band && h_dash_on && !(top_side || bot_side))
                 pix_data <= YELLOW;
+                
+            // 斑马线：在人行道区域画横向白条（让行人和车可以覆盖在上面）
+            if (zebra_on)
+                pix_data <= WHITE;
 
-
-            // 锟斤拷锟斤拷位锟斤拷锟斤拷锟斤拷锟侥灯ｏ拷main_* 锟斤拷色锟斤拷
+            // 信号灯位置：主路灯、行人灯
             if(inLampCar) pix_data <= color_from_main(main_R, main_Y, main_G);
-            // 锟斤拷锟斤拷位锟斤拷锟斤拷锟剿匡拷锟侥灯ｏ拷side_* 锟斤拷色锟斤拷
             if(inLampPed) pix_data <= color_from_side(side_R, side_Y, side_G);
 
             // 锟洁车锟斤拷锟较ｏ拷锟斤拷锟斤拷- 锟斤拷锟斤拷锟脚匡拷

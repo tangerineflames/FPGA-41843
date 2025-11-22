@@ -1,7 +1,7 @@
 Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2018.3 (win64) Build 2405991 Thu Dec  6 23:38:27 MST 2018
-| Date             : Sat Nov 22 21:05:12 2025
+| Date             : Sat Nov 22 21:24:29 2025
 | Host             : LAPTOP-BRRA12UD running 64-bit major release  (build 9200)
 | Command          : report_power -file vga_colorbar_power_routed.rpt -pb vga_colorbar_power_summary_routed.pb -rpx vga_colorbar_power_routed.rpx
 | Design           : vga_colorbar
@@ -30,14 +30,14 @@ Table of Contents
 ----------
 
 +--------------------------+--------------+
-| Total On-Chip Power (W)  | 0.493        |
+| Total On-Chip Power (W)  | 0.480        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 0.377        |
+| Dynamic (W)              | 0.365        |
 | Device Static (W)        | 0.115        |
 | Effective TJA (C/W)      | 11.5         |
-| Max Ambient (C)          | 79.3         |
-| Junction Temperature (C) | 30.7         |
+| Max Ambient (C)          | 79.5         |
+| Junction Temperature (C) | 30.5         |
 | Confidence Level         | Low          |
 | Setting File             | ---          |
 | Simulation Activity File | ---          |
@@ -53,19 +53,19 @@ Table of Contents
 | On-Chip        | Power (W) | Used     | Available | Utilization (%) |
 +----------------+-----------+----------+-----------+-----------------+
 | Clocks         |     0.009 |        6 |       --- |             --- |
-| Slice Logic    |     0.099 |    69717 |       --- |             --- |
-|   LUT as Logic |     0.094 |    44221 |     53200 |           83.12 |
-|   CARRY4       |     0.006 |     8526 |     13300 |           64.11 |
-|   F7/F8 Muxes  |    <0.001 |      140 |     53200 |            0.26 |
-|   Register     |    <0.001 |     4525 |    106400 |            4.25 |
-|   Others       |     0.000 |      118 |       --- |             --- |
-| Signals        |     0.118 |    48812 |       --- |             --- |
+| Slice Logic    |     0.097 |    69518 |       --- |             --- |
+|   LUT as Logic |     0.091 |    43756 |     53200 |           82.25 |
+|   CARRY4       |     0.006 |     8489 |     13300 |           63.83 |
+|   F7/F8 Muxes  |    <0.001 |      145 |     53200 |            0.27 |
+|   Register     |    <0.001 |     4522 |    106400 |            4.25 |
+|   Others       |     0.000 |      116 |       --- |             --- |
+| Signals        |     0.108 |    48562 |       --- |             --- |
 | Block RAM      |     0.010 |       57 |       140 |           40.71 |
 | MMCM           |     0.116 |        1 |         4 |           25.00 |
 | DSPs           |     0.024 |      113 |       220 |           51.36 |
 | I/O            |    <0.001 |       22 |       200 |           11.00 |
 | Static Power   |     0.115 |          |           |                 |
-| Total          |     0.493 |          |           |                 |
+| Total          |     0.480 |          |           |                 |
 +----------------+-----------+----------+-----------+-----------------+
 
 
@@ -75,7 +75,7 @@ Table of Contents
 +-----------+-------------+-----------+-------------+------------+
 | Source    | Voltage (V) | Total (A) | Dynamic (A) | Static (A) |
 +-----------+-------------+-----------+-------------+------------+
-| Vccint    |       1.000 |     0.270 |       0.260 |      0.010 |
+| Vccint    |       1.000 |     0.258 |       0.248 |      0.010 |
 | Vccaux    |       1.800 |     0.076 |       0.064 |      0.011 |
 | Vcco33    |       3.300 |     0.001 |       0.000 |      0.001 |
 | Vcco25    |       2.500 |     0.000 |       0.000 |      0.000 |
@@ -154,11 +154,11 @@ Table of Contents
 +------------------------------+-----------+
 | Name                         | Power (W) |
 +------------------------------+-----------+
-| vga_colorbar                 |     0.377 |
+| vga_colorbar                 |     0.365 |
 |   u_anim                     |     0.001 |
 |   u_clk                      |     0.117 |
 |     inst                     |     0.117 |
-|   u_cross                    |     0.238 |
+|   u_cross                    |     0.230 |
 |     G_BL_ROT_HIT[0].u_rot_bl |     0.002 |
 |     G_BL_ROT_HIT[1].u_rot_bl |     0.002 |
 |     G_BL_ROT_HIT[2].u_rot_bl |     0.002 |
@@ -175,9 +175,11 @@ Table of Contents
 |     G_TL_ROT_HIT[1].u_rot    |     0.002 |
 |     G_TL_ROT_HIT[2].u_rot    |     0.002 |
 |     G_TL_ROT_HIT[3].u_rot    |     0.002 |
-|     u_adapt                  |     0.156 |
+|     u_adapt                  |     0.148 |
 |     u_bg                     |     0.003 |
-|   u_ctrl                     |     0.017 |
+|     u_cfg                    |     0.001 |
+|   u_ctrl                     |     0.013 |
+|   u_tl                       |     0.001 |
 +------------------------------+-----------+
 
 
