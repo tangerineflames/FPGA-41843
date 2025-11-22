@@ -210,63 +210,81 @@ uart_rx #(
     wire side_R, side_Y, side_G;
     wire [2:0] tl_state;
     wire [7:0] walk_cur_sec;
-    
+    wire [7:0] peak_main_green_s;
+    wire [7:0] peak_side_green_s;
     // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
     reg in_crossing_d1;
     reg [7:0] walk_final_sec;
     reg [3:0] eff_tens, eff_ones, eff_frac;  // Ð§ï¿½Ê²ï¿½Ö³Éµï¿½Î»ï¿½ï¿½Ê¡ï¿½ï¿?? vga_pic ï¿½ÐµÄ³ï¿½ï¿½ï¿½
     reg [9:0] eff_val;  // Ð§ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½
-    
     always @(posedge vga_clk or negedge rst_n) begin
         if (!rst_n) begin
             in_crossing_d1 <= 1'b0;
             walk_final_sec <= 8'd0;
-            eff_tens <= 4'd0;
-            eff_ones <= 4'd0;
-            eff_frac <= 4'd0;
-            eff_val <= 10'd0;
+            eff_tens       <= 4'd0;
+            eff_ones       <= 4'd0;
+            eff_frac       <= 4'd0;
+            eff_val        <= 10'd0;
         end else begin
             in_crossing_d1 <= in_crossing;
-            // ï¿½ï¿½ï¿½Â½ï¿½Å£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Â½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿??
-            if (in_crossing_d1 && !in_crossing && (walk_cur_sec > 0)) begin
-                walk_final_sec <= walk_cur_sec;
-                // ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½10ï¿½ï¿½/walktimeï¿½ï¿½ï¿½ï¿½ï¿½Í±ï¿½99.9ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö³Éµï¿½ï¿½?
-                if ((people_count * 10) / walk_cur_sec > 999) begin
-                    eff_tens <= 4'd9;
-                    eff_ones <= 4'd9;
-                    eff_frac <= 4'd9;
-                end else begin
-                    eff_val <= (people_count * 10) / walk_cur_sec;
-                    eff_tens <= eff_val / 100;
-                    eff_ones <= (eff_val % 100) / 10;
-                    eff_frac <= eff_val % 10;
+
+            // ¡ï Ö»ÔÚ NORMAL Ä£Ê½ÏÂÍ³¼Æ walktime / efficiency
+            if (mode_vga == 2'd1) begin
+                if (in_crossing_d1 && !in_crossing && (walk_cur_sec > 0)) begin
+                    walk_final_sec <= walk_cur_sec;
+
+                    if ((people_count * 10) / walk_cur_sec > 999) begin
+                        eff_tens <= 4'd9;
+                        eff_ones <= 4'd9;
+                        eff_frac <= 4'd9;
+                    end else begin
+                        eff_val  <= (people_count * 10) / walk_cur_sec;
+                        eff_tens <= eff_val / 100;
+                        eff_ones <= (eff_val % 100) / 10;
+                        eff_frac <= eff_val % 10;
+                    end
                 end
+            end else begin
+                // ¡ï ¸ß·åÄ£Ê½£ºÕâÐ©Êý²»ÓÃ£¬Í³Ò»ÇåÁã
+                walk_final_sec <= 8'd0;
+                eff_tens       <= 4'd0;
+                eff_ones       <= 4'd0;
+                eff_frac       <= 4'd0;
+                eff_val        <= 10'd0;
             end
         end
     end
 
-        traffic_ctrl_adaptive #(
-        .CLK_HZ(25_175_000),
-        .MIN_GREEN_S(3),
-        .MAX_GREEN_S(12),
-        .YELLOW_S(1),
-        .ALL_RED_S(1),
-        .GAP_S(1)
+    traffic_ctrl_adaptive #(
+        .CLK_HZ       (25_175_000),
+        .MIN_GREEN_S  (5),   // ¡ï ÕâÀïÎÒ¸Ä³ÉÁË 5£¬Èç¹ûÄãÏë±£³ÖÔ­À´ 3£¬¾Í¸Ä»Ø 3
+        .MAX_GREEN_S  (12),
+        .YELLOW_S     (1),
+        .ALL_RED_S    (1),
+        .GAP_S        (1),
+        // ¿ÉÒÔ²»Ð´£¬±£ÁôÄ¬ÈÏ£»ÏÖÔÚÊÇÏÔÊ½ÁÐ³öÀ´¶øÒÑ
+        .MORN_MAIN_S  (12),
+        .MORN_SIDE_S  (5),
+        .EVEN_MAIN_S  (12),
+        .EVEN_SIDE_S  (5)
     ) u_tl (
         .clk      (vga_clk),
         .rst_n    (rst_n),
-
-        //ÐÂÔö£º°ÑÄ£Ê½´«½øÈ¥£¨0=Ôç¸ß·å,1=Õý³£,2=Íí¸ß·å£©
         .mode     (mode_vga),
-
         .tick     (1'b0),
         .det_main (det_main),
         .det_side (det_side),
-        .in_crossing(in_crossing),
+        .in_crossing (in_crossing),
+
         .main_G   (main_G), .main_Y(main_Y), .main_R(main_R),
         .side_G   (side_G), .side_Y(side_Y), .side_R(side_R),
-        .cur_sec  (walk_cur_sec), .state(tl_state)
+        .cur_sec  (walk_cur_sec),
+        .state    (tl_state),
+
+        .peak_main_green_s (peak_main_green_s),
+        .peak_side_green_s (peak_side_green_s)
     );
+
 
 
     // ================== ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½Ë£ï¿½ ==================
@@ -341,7 +359,8 @@ uart_rx #(
 
         .modenum        (mode_vga),       // å³ä¸Šè§’æ¨¡å¼è‰²ï¿???
         .ped_phase_step (10'd16),         // è¡Œäººé—´è·
-
+        .peak_main_green_s (peak_main_green_s),
+        .peak_side_green_s (peak_side_green_s),
         .pix_data       (pix_pic)
     );
 

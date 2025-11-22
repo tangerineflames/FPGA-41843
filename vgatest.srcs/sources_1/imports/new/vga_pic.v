@@ -33,7 +33,9 @@ module vga_pic(
 
     // 锟斤拷选锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷"时锟斤拷锟斤拷位"锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷也锟斤拷锟节憋拷锟侥硷拷锟斤拷锟斤拷? localparam锟斤拷
     input  wire [9:0]  ped_phase_step,
-
+        // 高峰模式固定绿灯时间（单位：秒），由 traffic_ctrl_adaptive 传进来
+    input  wire [7:0]  peak_main_green_s, // 当前模式下主路绿灯固定时长
+    input  wire [7:0]  peak_side_green_s, // 当前模式下人行道/支路绿灯固定时长
     output reg  [15:0] pix_data
 );
     // 锟斤拷锟斤拷色
@@ -71,7 +73,7 @@ module vga_pic(
     localparam V_SIDE_W = 10'd3;
     localparam X_MID  = (X_LEFT + X_RIGHT) >> 1;
     localparam V_DASH_PERIOD = 10'd64, V_DASH_ON = 10'd24;
-
+    
     // 锟洁车锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟诫）
     localparam integer N_UP = 15, N_DN = 15;
     localparam integer SP_BASE = 96;
@@ -431,184 +433,490 @@ endfunction
         end
     end
 
-    // ===================== 瀛楃鏄剧ず锛氳浜烘暟鍜岃溅杈嗘暟 =====================
-    // 鏄剧ず浣嶇疆锛堝乏涓婅锟??
-    localparam CHAR_W = 8, CHAR_H = 8, SPACE_W = 1;
-    localparam TEXT_X = 10'd8;
-    localparam TEXT_PEOPLE_Y = 10'd32;  // 鍦ㄦā寮忚壊鍧椾笅锟??
-    localparam TEXT_CAR_Y = TEXT_PEOPLE_Y + CHAR_H + 2;
-    localparam TEXT_WALK_Y = TEXT_CAR_Y + CHAR_H + 2;
-    localparam TEXT_EFF_Y  = TEXT_WALK_Y + CHAR_H + 2;
+    // ===================== 字符显示：行人数、车数、walktime、eff、模式 =====================
+    // 显示位置（左上角为主）
+    localparam CHAR_W       = 8;
+    localparam CHAR_H       = 8;
+    localparam SPACE_W      = 1;
+    localparam TEXT_X       = 10'd8;
+    localparam TEXT_PEOPLE_Y= 10'd32;
+    localparam TEXT_CAR_Y   = TEXT_PEOPLE_Y + CHAR_H + 2;
+    localparam TEXT_WALK_Y  = TEXT_CAR_Y    + CHAR_H + 2;
+    localparam TEXT_EFF_Y   = TEXT_WALK_Y   + CHAR_H + 2;
     
-    // 璁＄畻杞﹁締鎬绘暟
+    // 计算车辆总数
     wire [7:0] car_total = car_count_up + car_count_down;
-    
-    // "people:" 鏍囩鏄剧ず
+
+    // -------------------- "people:" 标签 --------------------
     localparam TEXT_PEOPLE_LEN = 7;
-    wire in_people_label = (pix_x >= TEXT_X) && (pix_x < TEXT_X + TEXT_PEOPLE_LEN*(CHAR_W+SPACE_W)) &&
-                           (pix_y >= TEXT_PEOPLE_Y) && (pix_y < TEXT_PEOPLE_Y + CHAR_H);
-    wire [9:0] people_label_col = pix_x - TEXT_X;
-    wire [9:0] people_label_dy = pix_y - TEXT_PEOPLE_Y;
-    wire [2:0] people_label_row = people_label_dy[2:0];
-    wire [2:0] people_label_ch_idx = people_label_col / (CHAR_W + SPACE_W);
-    wire [3:0] people_label_col_mod = people_label_col % (CHAR_W + SPACE_W);
-    wire people_label_in_space = (people_label_col_mod >= CHAR_W);
+    wire in_people_label =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_PEOPLE_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_PEOPLE_Y) &&
+        (pix_y <  TEXT_PEOPLE_Y + CHAR_H);
+
+    wire [9:0] people_label_col      = pix_x - TEXT_X;
+    wire [9:0] people_label_dy       = pix_y - TEXT_PEOPLE_Y;
+    wire [2:0] people_label_row      = people_label_dy[2:0];
+    wire [2:0] people_label_ch_idx   = people_label_col / (CHAR_W + SPACE_W);
+    wire [3:0] people_label_col_mod  = people_label_col % (CHAR_W + SPACE_W);
+    wire       people_label_in_space = (people_label_col_mod >= CHAR_W);
     wire [2:0] people_label_col_in_char = CHAR_W - 1 - people_label_col_mod[2:0];
-    
-    wire [7:0] people_label_ch_ascii;
+
     wire [8*7-1:0] str_people_pack = "people:";
-    assign people_label_ch_ascii = str_people_pack[8*(6-people_label_ch_idx) +: 8];
-    
+    wire [7:0] people_label_ch_ascii =
+        str_people_pack[8*(6-people_label_ch_idx) +: 8];
+
     wire [7:0] people_label_row_bits;
-    font u_font_people_label(.ascii(people_label_ch_ascii), .row(people_label_row), .bits(people_label_row_bits));
-    wire people_label_on = in_people_label && !people_label_in_space ? people_label_row_bits[people_label_col_in_char] : 1'b0;
-    
-    // 琛屼汉鏁版暟瀛楁樉绀猴紙鏀寔涓や綅鏁帮級
+    font u_font_people_label(
+        .ascii(people_label_ch_ascii),
+        .row  (people_label_row),
+        .bits (people_label_row_bits)
+    );
+    wire people_label_on =
+        in_people_label && !people_label_in_space ?
+        people_label_row_bits[people_label_col_in_char] : 1'b0;
+
+    // people 数字（两位）
     localparam PEOPLE_NUM_X = TEXT_X + TEXT_PEOPLE_LEN*(CHAR_W+SPACE_W);
     wire [3:0] people_tens = people_count / 10;
     wire [3:0] people_ones = people_count % 10;
-    wire in_people_num = (pix_x >= PEOPLE_NUM_X) && (pix_x < PEOPLE_NUM_X + 2*(CHAR_W+SPACE_W)) &&
-                         (pix_y >= TEXT_PEOPLE_Y) && (pix_y < TEXT_PEOPLE_Y + CHAR_H);
-    wire [9:0] people_num_col = pix_x - PEOPLE_NUM_X;
-    wire [9:0] people_num_dy = pix_y - TEXT_PEOPLE_Y;
-    wire [2:0] people_num_row = people_num_dy[2:0];
-    wire [1:0] people_num_ch_idx = people_num_col / (CHAR_W + SPACE_W);
-    wire [3:0] people_num_col_mod = people_num_col % (CHAR_W + SPACE_W);
-    wire people_num_in_space = (people_num_col_mod >= CHAR_W);
+
+    wire in_people_num =
+        (pix_x >= PEOPLE_NUM_X) &&
+        (pix_x <  PEOPLE_NUM_X + 2*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_PEOPLE_Y) &&
+        (pix_y <  TEXT_PEOPLE_Y + CHAR_H);
+
+    wire [9:0] people_num_col      = pix_x - PEOPLE_NUM_X;
+    wire [9:0] people_num_dy       = pix_y - TEXT_PEOPLE_Y;
+    wire [2:0] people_num_row      = people_num_dy[2:0];
+    wire [1:0] people_num_ch_idx   = people_num_col / (CHAR_W + SPACE_W);
+    wire [3:0] people_num_col_mod  = people_num_col % (CHAR_W + SPACE_W);
+    wire       people_num_in_space = (people_num_col_mod >= CHAR_W);
     wire [2:0] people_num_col_in_char = CHAR_W - 1 - people_num_col_mod[2:0];
-    
-    wire [7:0] people_num_ch_ascii;
-    assign people_num_ch_ascii = (people_num_ch_idx == 2'd0) ? (8'h30 + {1'b0, people_tens}) : (8'h30 + {1'b0, people_ones});
-    
+
+    wire [7:0] people_num_ch_ascii =
+        (people_num_ch_idx == 2'd0) ? (8'h30 + {1'b0, people_tens}) :
+                                      (8'h30 + {1'b0, people_ones});
+
     wire [7:0] people_num_row_bits;
-    font u_font_people_num(.ascii(people_num_ch_ascii), .row(people_num_row), .bits(people_num_row_bits));
-    wire people_num_on = in_people_num && !people_num_in_space ? people_num_row_bits[people_num_col_in_char] : 1'b0;
-    
-    // "car:" 鏍囩鏄剧ず
+    font u_font_people_num(
+        .ascii(people_num_ch_ascii),
+        .row  (people_num_row),
+        .bits (people_num_row_bits)
+    );
+    wire people_num_on =
+        in_people_num && !people_num_in_space ?
+        people_num_row_bits[people_num_col_in_char] : 1'b0;
+
+    // -------------------- "car:" 标签 --------------------
     localparam TEXT_CAR_LEN = 4;
-    wire in_car_label = (pix_x >= TEXT_X) && (pix_x < TEXT_X + TEXT_CAR_LEN*(CHAR_W+SPACE_W)) &&
-                        (pix_y >= TEXT_CAR_Y) && (pix_y < TEXT_CAR_Y + CHAR_H);
-    wire [9:0] car_label_col = pix_x - TEXT_X;
-    wire [9:0] car_label_dy = pix_y - TEXT_CAR_Y;
-    wire [2:0] car_label_row = car_label_dy[2:0];
-    wire [2:0] car_label_ch_idx = car_label_col / (CHAR_W + SPACE_W);
-    wire [3:0] car_label_col_mod = car_label_col % (CHAR_W + SPACE_W);
-    wire car_label_in_space = (car_label_col_mod >= CHAR_W);
+    wire in_car_label =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_CAR_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_CAR_Y) &&
+        (pix_y <  TEXT_CAR_Y + CHAR_H);
+
+    wire [9:0] car_label_col      = pix_x - TEXT_X;
+    wire [9:0] car_label_dy       = pix_y - TEXT_CAR_Y;
+    wire [2:0] car_label_row      = car_label_dy[2:0];
+    wire [2:0] car_label_ch_idx   = car_label_col / (CHAR_W + SPACE_W);
+    wire [3:0] car_label_col_mod  = car_label_col % (CHAR_W + SPACE_W);
+    wire       car_label_in_space = (car_label_col_mod >= CHAR_W);
     wire [2:0] car_label_col_in_char = CHAR_W - 1 - car_label_col_mod[2:0];
-    
-    wire [7:0] car_label_ch_ascii;
+
     wire [8*4-1:0] str_car_pack = "car:";
-    assign car_label_ch_ascii = str_car_pack[8*(3-car_label_ch_idx) +: 8];
-    
+    wire [7:0] car_label_ch_ascii =
+        str_car_pack[8*(3-car_label_ch_idx) +: 8];
+
     wire [7:0] car_label_row_bits;
-    font u_font_car_label(.ascii(car_label_ch_ascii), .row(car_label_row), .bits(car_label_row_bits));
-    wire car_label_on = in_car_label && !car_label_in_space ? car_label_row_bits[car_label_col_in_char] : 1'b0;
-    
-    // 杞﹁締鏁版暟瀛楁樉绀猴紙鏀寔涓や綅鏁帮級
+    font u_font_car_label(
+        .ascii(car_label_ch_ascii),
+        .row  (car_label_row),
+        .bits (car_label_row_bits)
+    );
+    wire car_label_on =
+        in_car_label && !car_label_in_space ?
+        car_label_row_bits[car_label_col_in_char] : 1'b0;
+
+    // car 数字（两位）
     localparam CAR_NUM_X = TEXT_X + TEXT_CAR_LEN*(CHAR_W+SPACE_W);
     wire [3:0] car_tens = car_total / 10;
     wire [3:0] car_ones = car_total % 10;
-    wire in_car_num = (pix_x >= CAR_NUM_X) && (pix_x < CAR_NUM_X + 2*(CHAR_W+SPACE_W)) &&
-                      (pix_y >= TEXT_CAR_Y) && (pix_y < TEXT_CAR_Y + CHAR_H);
-    wire [9:0] car_num_col = pix_x - CAR_NUM_X;
-    wire [9:0] car_num_dy = pix_y - TEXT_CAR_Y;
-    wire [2:0] car_num_row = car_num_dy[2:0];
-    wire [1:0] car_num_ch_idx = car_num_col / (CHAR_W + SPACE_W);
-    wire [3:0] car_num_col_mod = car_num_col % (CHAR_W + SPACE_W);
-    wire car_num_in_space = (car_num_col_mod >= CHAR_W);
-    wire [2:0] car_num_col_in_char = CHAR_W - 1 - car_num_col_mod[2:0];
-    
-    wire [7:0] car_num_ch_ascii;
-    assign car_num_ch_ascii = (car_num_ch_idx == 2'd0) ? (8'h30 + {1'b0, car_tens}) : (8'h30 + {1'b0, car_ones});
-    
-    wire [7:0] car_num_row_bits;
-    font u_font_car_num(.ascii(car_num_ch_ascii), .row(car_num_row), .bits(car_num_row_bits));
-    wire car_num_on = in_car_num && !car_num_in_space ? car_num_row_bits[car_num_col_in_char] : 1'b0;
 
-    // "walktime:" 鏍囩鏄剧ず
-    localparam TEXT_WALK_LEN = 9;
-    localparam WALK_NUM_CHARS = 3;
-    localparam WALK_NUM_X = TEXT_X + TEXT_WALK_LEN*(CHAR_W+SPACE_W);
-    wire in_walk_label = (pix_x >= TEXT_X) && (pix_x < TEXT_X + TEXT_WALK_LEN*(CHAR_W+SPACE_W)) &&
-                         (pix_y >= TEXT_WALK_Y) && (pix_y < TEXT_WALK_Y + CHAR_H);
-    wire [9:0] walk_label_col = pix_x - TEXT_X;
-    wire [9:0] walk_label_dy  = pix_y - TEXT_WALK_Y;
-    wire [2:0] walk_label_row = walk_label_dy[2:0];
-    wire [3:0] walk_label_ch_idx = walk_label_col / (CHAR_W + SPACE_W);
-    wire [3:0] walk_label_col_mod = walk_label_col % (CHAR_W + SPACE_W);
-    wire walk_label_in_space = (walk_label_col_mod >= CHAR_W);
+    wire in_car_num =
+        (pix_x >= CAR_NUM_X) &&
+        (pix_x <  CAR_NUM_X + 2*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_CAR_Y) &&
+        (pix_y <  TEXT_CAR_Y + CHAR_H);
+
+    wire [9:0] car_num_col      = pix_x - CAR_NUM_X;
+    wire [9:0] car_num_dy       = pix_y - TEXT_CAR_Y;
+    wire [2:0] car_num_row      = car_num_dy[2:0];
+    wire [1:0] car_num_ch_idx   = car_num_col / (CHAR_W + SPACE_W);
+    wire [3:0] car_num_col_mod  = car_num_col % (CHAR_W + SPACE_W);
+    wire       car_num_in_space = (car_num_col_mod >= CHAR_W);
+    wire [2:0] car_num_col_in_char = CHAR_W - 1 - car_num_col_mod[2:0];
+
+    wire [7:0] car_num_ch_ascii =
+        (car_num_ch_idx == 2'd0) ? (8'h30 + {1'b0, car_tens}) :
+                                   (8'h30 + {1'b0, car_ones});
+
+    wire [7:0] car_num_row_bits;
+    font u_font_car_num(
+        .ascii(car_num_ch_ascii),
+        .row  (car_num_row),
+        .bits (car_num_row_bits)
+    );
+    wire car_num_on =
+        in_car_num && !car_num_in_space ?
+        car_num_row_bits[car_num_col_in_char] : 1'b0;
+
+    // -------------------- "walktime:" 标签 --------------------
+    localparam TEXT_WALK_LEN   = 9;
+    localparam WALK_NUM_CHARS  = 3;
+    localparam WALK_NUM_X      = TEXT_X + TEXT_WALK_LEN*(CHAR_W+SPACE_W);
+
+    wire in_walk_label =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_WALK_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_WALK_Y) &&
+        (pix_y <  TEXT_WALK_Y + CHAR_H);
+
+    wire [9:0] walk_label_col      = pix_x - TEXT_X;
+    wire [9:0] walk_label_dy       = pix_y - TEXT_WALK_Y;
+    wire [2:0] walk_label_row      = walk_label_dy[2:0];
+    wire [3:0] walk_label_ch_idx   = walk_label_col / (CHAR_W + SPACE_W);
+    wire [3:0] walk_label_col_mod  = walk_label_col % (CHAR_W + SPACE_W);
+    wire       walk_label_in_space = (walk_label_col_mod >= CHAR_W);
     wire [2:0] walk_label_col_in_char = CHAR_W - 1 - walk_label_col_mod[2:0];
+
     wire [8*9-1:0] str_walk_pack = "walktime:";
-    wire [7:0] walk_label_ch_ascii = str_walk_pack[8*(8-walk_label_ch_idx) +: 8];
+    wire [7:0] walk_label_ch_ascii =
+        str_walk_pack[8*(8-walk_label_ch_idx) +: 8];
+
     wire [7:0] walk_label_row_bits;
-    font u_font_walk_label(.ascii(walk_label_ch_ascii), .row(walk_label_row), .bits(walk_label_row_bits));
-    wire walk_label_on = in_walk_label && !walk_label_in_space ? walk_label_row_bits[walk_label_col_in_char] : 1'b0;
-    
-    // walktime 鏁板瓧鏄剧ず锛堢畝鍖栦负 0~99 绉掞紝鑺傜渷 LUT锛?
+    font u_font_walk_label(
+        .ascii(walk_label_ch_ascii),
+        .row  (walk_label_row),
+        .bits (walk_label_row_bits)
+    );
+    wire walk_label_on =
+        in_walk_label && !walk_label_in_space ?
+        walk_label_row_bits[walk_label_col_in_char] : 1'b0;
+
+    // walktime 数字（0~99）
     wire [7:0] walk_time_clamped = (walk_time_sec > 99) ? 8'd99 : walk_time_sec;
-    wire [7:0] walk_tens_val = walk_time_clamped / 8'd10;
-    wire [7:0] walk_ones_val = walk_time_clamped % 8'd10;
-    wire [3:0] walk_tens_digit = walk_tens_val[3:0];
-    wire [3:0] walk_ones_digit = walk_ones_val[3:0];
-    
-    wire in_walk_num = (pix_x >= WALK_NUM_X) && (pix_x < WALK_NUM_X + WALK_NUM_CHARS*(CHAR_W+SPACE_W)) &&
-                       (pix_y >= TEXT_WALK_Y) && (pix_y < TEXT_WALK_Y + CHAR_H);
-    wire [9:0] walk_num_col = pix_x - WALK_NUM_X;
-    wire [9:0] walk_num_dy  = pix_y - TEXT_WALK_Y;
-    wire [2:0] walk_num_row = walk_num_dy[2:0];
-    wire [1:0] walk_num_ch_idx = walk_num_col / (CHAR_W + SPACE_W);
-    wire [3:0] walk_num_col_mod = walk_num_col % (CHAR_W + SPACE_W);
-    wire walk_num_in_space = (walk_num_col_mod >= CHAR_W);
+    wire [7:0] walk_tens_val     = walk_time_clamped / 8'd10;
+    wire [7:0] walk_ones_val     = walk_time_clamped % 8'd10;
+    wire [3:0] walk_tens_digit   = walk_tens_val[3:0];
+    wire [3:0] walk_ones_digit   = walk_ones_val[3:0];
+
+    wire in_walk_num =
+        (pix_x >= WALK_NUM_X) &&
+        (pix_x <  WALK_NUM_X + WALK_NUM_CHARS*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_WALK_Y) &&
+        (pix_y <  TEXT_WALK_Y + CHAR_H);
+
+    wire [9:0] walk_num_col      = pix_x - WALK_NUM_X;
+    wire [9:0] walk_num_dy       = pix_y - TEXT_WALK_Y;
+    wire [2:0] walk_num_row      = walk_num_dy[2:0];
+    wire [1:0] walk_num_ch_idx   = walk_num_col / (CHAR_W + SPACE_W);
+    wire [3:0] walk_num_col_mod  = walk_num_col % (CHAR_W + SPACE_W);
+    wire       walk_num_in_space = (walk_num_col_mod >= CHAR_W);
     wire [2:0] walk_num_col_in_char = CHAR_W - 1 - walk_num_col_mod[2:0];
+
     wire [7:0] walk_num_ch_ascii =
-        (walk_num_ch_idx == 2'd0) ? ((walk_tens_digit == 4'd0) ? 8'h20 : (8'h30 + {4'b0000, walk_tens_digit})) :
-        (walk_num_ch_idx == 2'd1) ? (8'h30 + {4'b0000, walk_ones_digit}) :
-                                     8'h73;  // 's'
+        (walk_num_ch_idx == 2'd0) ?
+            ((walk_tens_digit == 4'd0) ? 8'h20 :
+                                        (8'h30 + {4'b0000, walk_tens_digit})) :
+        (walk_num_ch_idx == 2'd1) ?
+            (8'h30 + {4'b0000, walk_ones_digit}) :
+            8'h73; // 's'
+
     wire [7:0] walk_num_row_bits;
-    font u_font_walk_num(.ascii(walk_num_ch_ascii), .row(walk_num_row), .bits(walk_num_row_bits));
-    wire walk_num_on = in_walk_num && !walk_num_in_space ? walk_num_row_bits[walk_num_col_in_char] : 1'b0;
-    
-    // "efficiency:" 鏍囩鏄剧ず
-    localparam TEXT_EFF_LEN = 11;
-    localparam EFF_NUM_CHARS = 4;
-    localparam EFF_NUM_X = TEXT_X + TEXT_EFF_LEN*(CHAR_W+SPACE_W);
-    wire in_eff_label = (pix_x >= TEXT_X) && (pix_x < TEXT_X + TEXT_EFF_LEN*(CHAR_W+SPACE_W)) &&
-                        (pix_y >= TEXT_EFF_Y) && (pix_y < TEXT_EFF_Y + CHAR_H);
-    wire [9:0] eff_label_col = pix_x - TEXT_X;
-    wire [9:0] eff_label_dy  = pix_y - TEXT_EFF_Y;
-    wire [2:0] eff_label_row = eff_label_dy[2:0];
-    wire [3:0] eff_label_ch_idx = eff_label_col / (CHAR_W + SPACE_W);
-    wire [3:0] eff_label_col_mod = eff_label_col % (CHAR_W + SPACE_W);
-    wire eff_label_in_space = (eff_label_col_mod >= CHAR_W);
+    font u_font_walk_num(
+        .ascii(walk_num_ch_ascii),
+        .row  (walk_num_row),
+        .bits (walk_num_row_bits)
+    );
+    wire walk_num_on =
+        in_walk_num && !walk_num_in_space ?
+        walk_num_row_bits[walk_num_col_in_char] : 1'b0;
+
+    // -------------------- "efficiency:" 标签 --------------------
+    localparam TEXT_EFF_LEN   = 11;
+    localparam EFF_NUM_CHARS  = 4;
+    localparam EFF_NUM_X      = TEXT_X + TEXT_EFF_LEN*(CHAR_W+SPACE_W);
+
+    wire in_eff_label =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_EFF_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_EFF_Y) &&
+        (pix_y <  TEXT_EFF_Y + CHAR_H);
+
+    wire [9:0] eff_label_col      = pix_x - TEXT_X;
+    wire [9:0] eff_label_dy       = pix_y - TEXT_EFF_Y;
+    wire [2:0] eff_label_row      = eff_label_dy[2:0];
+    wire [3:0] eff_label_ch_idx   = eff_label_col / (CHAR_W + SPACE_W);
+    wire [3:0] eff_label_col_mod  = eff_label_col % (CHAR_W + SPACE_W);
+    wire       eff_label_in_space = (eff_label_col_mod >= CHAR_W);
     wire [2:0] eff_label_col_in_char = CHAR_W - 1 - eff_label_col_mod[2:0];
+
     wire [8*11-1:0] str_eff_pack = "efficiency:";
-    wire [7:0] eff_label_ch_ascii = str_eff_pack[8*(10-eff_label_ch_idx) +: 8];
+    wire [7:0] eff_label_ch_ascii =
+        str_eff_pack[8*(10-eff_label_ch_idx) +: 8];
+
     wire [7:0] eff_label_row_bits;
-    font u_font_eff_label(.ascii(eff_label_ch_ascii), .row(eff_label_row), .bits(eff_label_row_bits));
-    wire eff_label_on = in_eff_label && !eff_label_in_space ? eff_label_row_bits[eff_label_col_in_char] : 1'b0;
-    
-    // efficiency 鏁板瓧鏄剧ず锛堢洿鎺ヤ娇鐢ㄤ紶鍏ョ殑鎷嗗垎鏁板瓧锛寁ga_colorbar宸插畬鎴愯绠楋級
-    wire [3:0] eff_int_tens = eff_tens;
-    wire [3:0] eff_int_ones = eff_ones;
+    font u_font_eff_label(
+        .ascii(eff_label_ch_ascii),
+        .row  (eff_label_row),
+        .bits (eff_label_row_bits)
+    );
+    wire eff_label_on =
+        in_eff_label && !eff_label_in_space ?
+        eff_label_row_bits[eff_label_col_in_char] : 1'b0;
+
+    // efficiency 数字（xx.x）
+    wire [3:0] eff_int_tens   = eff_tens;
+    wire [3:0] eff_int_ones   = eff_ones;
     wire [3:0] eff_frac_digit = eff_frac;
-    
-    wire in_eff_num = (pix_x >= EFF_NUM_X) && (pix_x < EFF_NUM_X + EFF_NUM_CHARS*(CHAR_W+SPACE_W)) &&
-                      (pix_y >= TEXT_EFF_Y) && (pix_y < TEXT_EFF_Y + CHAR_H);
-    wire [9:0] eff_num_col = pix_x - EFF_NUM_X;
-    wire [9:0] eff_num_dy  = pix_y - TEXT_EFF_Y;
-    wire [2:0] eff_num_row = eff_num_dy[2:0];
-    wire [1:0] eff_num_ch_idx = eff_num_col / (CHAR_W + SPACE_W);
-    wire [3:0] eff_num_col_mod = eff_num_col % (CHAR_W + SPACE_W);
-    wire eff_num_in_space = (eff_num_col_mod >= CHAR_W);
+
+    wire in_eff_num =
+        (pix_x >= EFF_NUM_X) &&
+        (pix_x <  EFF_NUM_X + EFF_NUM_CHARS*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_EFF_Y) &&
+        (pix_y <  TEXT_EFF_Y + CHAR_H);
+
+    wire [9:0] eff_num_col      = pix_x - EFF_NUM_X;
+    wire [9:0] eff_num_dy       = pix_y - TEXT_EFF_Y;
+    wire [2:0] eff_num_row      = eff_num_dy[2:0];
+    wire [1:0] eff_num_ch_idx   = eff_num_col / (CHAR_W + SPACE_W);
+    wire [3:0] eff_num_col_mod  = eff_num_col % (CHAR_W + SPACE_W);
+    wire       eff_num_in_space = (eff_num_col_mod >= CHAR_W);
     wire [2:0] eff_num_col_in_char = CHAR_W - 1 - eff_num_col_mod[2:0];
+
     wire [7:0] eff_num_ch_ascii =
-        (eff_num_ch_idx == 2'd0) ? ((eff_int_tens == 4'd0) ? 8'h20 : (8'h30 + {4'b0000, eff_int_tens})) :
-        (eff_num_ch_idx == 2'd1) ? (8'h30 + {4'b0000, eff_int_ones}) :
-        (eff_num_ch_idx == 2'd2) ? 8'h2E :
-                                   (8'h30 + {4'b0000, eff_frac_digit});
+        (eff_num_ch_idx == 2'd0) ?
+            ((eff_int_tens == 4'd0) ? 8'h20 :
+                                      (8'h30 + {4'b0000, eff_int_tens})) :
+        (eff_num_ch_idx == 2'd1) ?
+            (8'h30 + {4'b0000, eff_int_ones}) :
+        (eff_num_ch_idx == 2'd2) ?
+            8'h2E :
+            (8'h30 + {4'b0000, eff_frac_digit});
+
     wire [7:0] eff_num_row_bits;
-    font u_font_eff_num(.ascii(eff_num_ch_ascii), .row(eff_num_row), .bits(eff_num_row_bits));
-    wire eff_num_on = in_eff_num && !eff_num_in_space ? eff_num_row_bits[eff_num_col_in_char] : 1'b0;
+    font u_font_eff_num(
+        .ascii(eff_num_ch_ascii),
+        .row  (eff_num_row),
+        .bits (eff_num_row_bits)
+    );
+    wire eff_num_on =
+        in_eff_num && !eff_num_in_space ?
+        eff_num_row_bits[eff_num_col_in_char] : 1'b0;
+
+    // ---------- 只在 NORMAL 模式显示 walktime / efficiency ----------
+    wire is_normal_mode = (modenum == NORMAL);
+    wire walk_text_on   = is_normal_mode && (walk_label_on || walk_num_on);
+    wire eff_text_on    = is_normal_mode && (eff_label_on  || eff_num_on);
+
+    // ---------- 模式文字和高峰期固定绿灯时长 ----------
+    wire is_peak_mode = (modenum == MORNING_PEAK) || (modenum == EVENING_PEAK);
+
+    // 将高峰固定绿灯时长截断到 0~99，并拆成十位个位
+    wire [7:0] main_peak_clamped = (peak_main_green_s > 8'd99) ? 8'd99 : peak_main_green_s;
+    wire [7:0] side_peak_clamped = (peak_side_green_s > 8'd99) ? 8'd99 : peak_side_green_s;
+
+    wire [3:0] main_peak_tens = main_peak_clamped / 10;
+    wire [3:0] main_peak_ones = main_peak_clamped % 10;
+    wire [3:0] side_peak_tens = side_peak_clamped / 10;
+    wire [3:0] side_peak_ones = side_peak_clamped % 10;
+
+    // ---- 第 1 行：左下角模式单词：morning / normal / evening ----
+    localparam TEXT_MODE_Y   = V_VALID - 10'd32;
+    localparam TEXT_MODE_LEN = 7;  // 最长 "morning"/"evening"
+
+    wire in_mode_text =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_MODE_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_MODE_Y) &&
+        (pix_y <  TEXT_MODE_Y + CHAR_H);
+
+    wire [9:0] mode_col         = pix_x - TEXT_X;
+    wire [9:0] mode_dy          = pix_y - TEXT_MODE_Y;
+    wire [2:0] mode_row         = mode_dy[2:0];
+    wire [2:0] mode_ch_idx      = mode_col / (CHAR_W + SPACE_W);
+    wire [3:0] mode_col_mod     = mode_col % (CHAR_W + SPACE_W);
+    wire       mode_in_space    = (mode_col_mod >= CHAR_W);
+    wire [2:0] mode_col_in_char = CHAR_W - 1 - mode_col_mod[2:0];
+
+    function [7:0] mode_word_ascii;
+        input [1:0] mode;
+        input [2:0] idx;
+        begin
+            case (mode)
+                MORNING_PEAK: begin // "morning"
+                    case (idx)
+                        3'd0: mode_word_ascii = "m";
+                        3'd1: mode_word_ascii = "o";
+                        3'd2: mode_word_ascii = "r";
+                        3'd3: mode_word_ascii = "n";
+                        3'd4: mode_word_ascii = "i";
+                        3'd5: mode_word_ascii = "n";
+                        3'd6: mode_word_ascii = "g";
+                        default: mode_word_ascii = " ";
+                    endcase
+                end
+                NORMAL: begin // "normal"
+                    case (idx)
+                        3'd0: mode_word_ascii = "n";
+                        3'd1: mode_word_ascii = "o";
+                        3'd2: mode_word_ascii = "r";
+                        3'd3: mode_word_ascii = "m";
+                        3'd4: mode_word_ascii = "a";
+                        3'd5: mode_word_ascii = "l";
+                        default: mode_word_ascii = " ";
+                    endcase
+                end
+                default: begin // EVENING_PEAK -> "evening"
+                    case (idx)
+                        3'd0: mode_word_ascii = "e";
+                        3'd1: mode_word_ascii = "v";
+                        3'd2: mode_word_ascii = "e";
+                        3'd3: mode_word_ascii = "n";
+                        3'd4: mode_word_ascii = "i";
+                        3'd5: mode_word_ascii = "n";
+                        3'd6: mode_word_ascii = "g";
+                        default: mode_word_ascii = " ";
+                    endcase
+                end
+            endcase
+        end
+    endfunction
+
+    wire [7:0] mode_ch_ascii = mode_word_ascii(modenum, mode_ch_idx);
+    wire [7:0] mode_row_bits;
+    font u_font_mode(
+        .ascii(mode_ch_ascii),
+        .row  (mode_row),
+        .bits (mode_row_bits)
+    );
+    wire mode_text_on =
+        in_mode_text && !mode_in_space ?
+        mode_row_bits[mode_col_in_char] : 1'b0;
+
+    // ---- 第 2 行：主路绿灯时长 "main:xxs"（只在高峰模式下显示）----
+    localparam TEXT_MAIN_Y   = TEXT_MODE_Y + CHAR_H + 2;
+    localparam TEXT_MAIN_LEN = 8;  // "main:xxs"
+
+    // ---- 第 3 行：支路绿灯时长 "side:yys"（只在高峰模式下显示）----
+    localparam TEXT_SIDE_Y   = TEXT_MAIN_Y + CHAR_H + 2;
+    localparam TEXT_SIDE_LEN = 8;  // "side:yys"
+    // ---------------- 主路 "main:xxs" ----------------
+    wire in_main_text =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_MAIN_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_MAIN_Y) &&
+        (pix_y <  TEXT_MAIN_Y + CHAR_H);
+
+    wire [9:0] main_col         = pix_x - TEXT_X;
+    wire [9:0] main_dy          = pix_y - TEXT_MAIN_Y;
+    wire [2:0] main_row         = main_dy[2:0];
+    wire [2:0] main_ch_idx      = main_col / (CHAR_W + SPACE_W);
+    wire [3:0] main_col_mod     = main_col % (CHAR_W + SPACE_W);
+    wire       main_in_space    = (main_col_mod >= CHAR_W);
+    wire [2:0] main_col_in_char = CHAR_W - 1 - main_col_mod[2:0];
+
+    // 生成 "m a i n : 数 字 s"
+    function [7:0] main_word_ascii;
+        input [2:0] idx;
+        input [3:0] m_tens, m_ones;
+        reg   [7:0] ch;
+        begin
+            ch = 8'h20; // 默认空格
+            case (idx)
+                3'd0: ch = "m";
+                3'd1: ch = "a";
+                3'd2: ch = "i";
+                3'd3: ch = "n";
+                3'd4: ch = ":";
+                3'd5: ch = (m_tens == 4'd0) ? 8'h20 : (8'h30 + {4'b0000, m_tens});
+                3'd6: ch =  8'h30 + {4'b0000, m_ones};
+                3'd7: ch = "s";
+                default: ch = 8'h20;
+            endcase
+            main_word_ascii = ch;
+        end
+    endfunction
+
+    wire [7:0] main_ch_ascii =
+        main_word_ascii(main_ch_idx, main_peak_tens, main_peak_ones);
+
+    wire [7:0] main_row_bits;
+    font u_font_main(
+        .ascii(main_ch_ascii),
+        .row  (main_row),
+        .bits (main_row_bits)
+    );
+
+    wire main_text_on =
+        is_peak_mode && in_main_text && !main_in_space ?
+        main_row_bits[main_col_in_char] : 1'b0;
+    // ---------------- 支路 "side:yys" ----------------
+    wire in_side_text =
+        (pix_x >= TEXT_X) &&
+        (pix_x <  TEXT_X + TEXT_SIDE_LEN*(CHAR_W+SPACE_W)) &&
+        (pix_y >= TEXT_SIDE_Y) &&
+        (pix_y <  TEXT_SIDE_Y + CHAR_H);
+
+    wire [9:0] side_col         = pix_x - TEXT_X;
+    wire [9:0] side_dy          = pix_y - TEXT_SIDE_Y;
+    wire [2:0] side_row         = side_dy[2:0];
+    wire [2:0] side_ch_idx      = side_col / (CHAR_W + SPACE_W);
+    wire [3:0] side_col_mod     = side_col % (CHAR_W + SPACE_W);
+    wire       side_in_space    = (side_col_mod >= CHAR_W);
+    wire [2:0] side_col_in_char = CHAR_W - 1 - side_col_mod[2:0];
+
+    function [7:0] side_word_ascii;
+        input [2:0] idx;
+        input [3:0] s_tens, s_ones;
+        reg   [7:0] ch;
+        begin
+            ch = 8'h20;
+            case (idx)
+                3'd0: ch = "s";
+                3'd1: ch = "i";
+                3'd2: ch = "d";
+                3'd3: ch = "e";
+                3'd4: ch = ":";
+                3'd5: ch = (s_tens == 4'd0) ? 8'h20 : (8'h30 + {4'b0000, s_tens});
+                3'd6: ch =  8'h30 + {4'b0000, s_ones};
+                3'd7: ch = "s";
+                default: ch = 8'h20;
+            endcase
+            side_word_ascii = ch;
+        end
+    endfunction
+
+    wire [7:0] side_ch_ascii =
+        side_word_ascii(side_ch_idx, side_peak_tens, side_peak_ones);
+
+    wire [7:0] side_row_bits;
+    font u_font_side(
+        .ascii(side_ch_ascii),
+        .row  (side_row),
+        .bits (side_row_bits)
+    );
+
+    wire side_text_on =
+        is_peak_mode && in_side_text && !side_in_space ?
+        side_row_bits[side_col_in_char] : 1'b0;
+
+
+    // ===================== 字符显示结束 =====================
+
     
     // 缁樺埗
 
@@ -666,9 +974,11 @@ endfunction
                pix_data <= WHITE;
             end
 
-            // 瀛楃鏄剧ず锛氳浜烘暟銆佽溅杈嗘暟浠ュ強鏁堢巼淇℃伅锛堢櫧鑹诧級
+            // 字符显示：行人数、车数，NORMAL 模式下的 walk/eff，
+            // 以及底部模式和高峰固定绿灯时长（白色）
             if(people_label_on || people_num_on || car_label_on || car_num_on ||
-               walk_label_on || walk_num_on || eff_label_on || eff_num_on) begin
+               walk_text_on    || eff_text_on    ||
+               mode_text_on    || main_text_on   || side_text_on) begin
                 pix_data <= WHITE;
             end
         end
