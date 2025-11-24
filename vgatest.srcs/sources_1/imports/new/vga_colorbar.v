@@ -12,7 +12,19 @@ module vga_colorbar(
     output wire       vsync,
     output wire [3:0] vga_r,
     output wire [3:0] vga_g,
-    output wire [3:0] vga_b
+    output wire [3:0] vga_b,
+    output wire SEG_CA,
+    output wire SEG_CB,
+    output wire SEG_CC,
+    output wire SEG_CD,
+    output wire SEG_CE,
+    output wire SEG_CF,
+    output wire SEG_CG,
+    output wire SEG_DP,
+    output wire SEG_BIT1,
+    output wire SEG_BIT2,
+    output wire SEG_BIT3,
+    output wire SEG_BIT4
 );
     // ================== 时锟接和革拷位 ==================
     wire vga_clk;
@@ -212,6 +224,9 @@ uart_rx #(
     wire [7:0] walk_cur_sec;
     wire [7:0] peak_main_green_s;
     wire [7:0] peak_side_green_s;
+    wire [7:0]  green_left_s;
+    wire        green_on_main;
+
     // 锟斤拷锟斤拷锟斤拷锟斤拷效锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷陆锟斤拷时锟斤拷锟斤拷
     reg in_crossing_d1;
     reg [7:0] walk_final_sec;
@@ -256,17 +271,19 @@ uart_rx #(
     end
 
     traffic_ctrl_adaptive #(
-        .CLK_HZ       (25_175_000),
-        .MIN_GREEN_S  (5),   // ★ 这里我改成了 5，如果你想保持原来 3，就改回 3
-        .MAX_GREEN_S  (12),
-        .YELLOW_S     (1),
-        .ALL_RED_S    (1),
-        .GAP_S        (1),
-        // 可以不写，保留默认；现在是显式列出来而已
-        .MORN_MAIN_S  (12),
-        .MORN_SIDE_S  (5),
-        .EVEN_MAIN_S  (12),
-        .EVEN_SIDE_S  (5)
+    .CLK_HZ       (25_175_000),
+    .SEC_SCALE    (4),      // ★ 新增
+
+    .MIN_GREEN_S  (20),
+    .MAX_GREEN_S  (48),
+    .YELLOW_S     (4),
+    .ALL_RED_S    (4),
+    .GAP_S        (4),
+
+    .MORN_MAIN_S  (48),
+    .MORN_SIDE_S  (20),
+    .EVEN_MAIN_S  (48),
+    .EVEN_SIDE_S  (20)
     ) u_tl (
         .clk      (vga_clk),
         .rst_n    (rst_n),
@@ -282,10 +299,11 @@ uart_rx #(
         .state    (tl_state),
 
         .peak_main_green_s (peak_main_green_s),
-        .peak_side_green_s (peak_side_green_s)
+        .peak_side_green_s (peak_side_green_s),
+        
+        .green_left_s      (green_left_s),
+        .green_on_main     (green_on_main)
     );
-
-
 
     // ================== 锟斤拷锟斤拷锟斤拷锟斤拷/锟斤拷锟剿ｏ拷 ==================
     wire [3:0] car_speed = 4'd8;   // 锟斤拷锟斤拷每 tick 8 锟斤拷锟斤拷
@@ -338,6 +356,34 @@ uart_rx #(
         else begin scene_sel_s0 <= scene_sel_sc; scene_sel_s1 <= scene_sel_s0; end
     end
     wire scene_sel = scene_sel_s1;
+    // 来自 traffic_ctrl_adaptive 的数码管值（街道场景）
+    wire [7:0] green_left_s_street;
+    wire       green_on_main_street;
+    
+    // 来自 traffic_adapt2 的数码管值（十字路口场景）
+    wire [7:0] phase_left_s_cross;
+    wire [2:0] phase_id_cross;
+    
+    // seg7 最终显示的值：根据 scene_sel 选择
+    wire [7:0] seg_value = scene_sel ? phase_left_s_cross : green_left_s_street;
+    seg7_4digit u_seg7 (
+        .clk      (sys_clk),      // 用 100MHz，刷新会比较稳定
+        .rst_n    (rst_n),
+        .value    (green_left_s), // 当前绿灯剩余"虚拟秒" 0~99
+
+        .SEG_CA   (SEG_CA),
+        .SEG_CB   (SEG_CB),
+        .SEG_CC   (SEG_CC),
+        .SEG_CD   (SEG_CD),
+        .SEG_CE   (SEG_CE),
+        .SEG_CF   (SEG_CF),
+        .SEG_CG   (SEG_CG),
+        .SEG_DP   (SEG_DP),
+        .SEG_BIT1 (SEG_BIT1),
+        .SEG_BIT2 (SEG_BIT2),
+        .SEG_BIT3 (SEG_BIT3),
+        .SEG_BIT4 (SEG_BIT4)
+    );
 
     // ================== 图锟斤拷锟斤拷锟缴ｏ拷锟斤拷路锟斤拷 ==================
     // 原锟斤拷锟侥筹拷锟斤拷

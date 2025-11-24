@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 module traffic_ctrl_adaptive #(
     parameter integer CLK_HZ      = 25_175_000,
+    parameter integer SEC_SCALE   = 4,          // 仿真"秒"的加速倍数，=4 表示快 4 倍
+        
     // NORMAL 模式下自适应用的参数
     parameter integer MIN_GREEN_S = 5,
     parameter integer MAX_GREEN_S = 12,
@@ -31,9 +33,13 @@ module traffic_ctrl_adaptive #(
 
     // ★ 给 VGA 用的"真实数字"：高峰模式的固定绿灯秒数（0~99）
     output wire [7:0]  peak_main_green_s,
-    output wire [7:0]  peak_side_green_s
-);
+    output wire [7:0]  peak_side_green_s,
+    
+        // 给数码管用的：当前绿灯剩余"虚拟秒"，以及当前绿灯是不是主路
+    output reg  [7:0] green_left_s,   // 0~99
+    output reg        green_on_main   // 1=主路绿灯，0=辅路绿灯(或无绿灯)
 
+);
     // 模式编码保持和 vga_pic 一致：0=早,1=normal,2=晚
     localparam [1:0] MORNING_PEAK = 2'd0;
     localparam [1:0] NORMAL       = 2'd1;
@@ -47,18 +53,31 @@ module traffic_ctrl_adaptive #(
                S_SY  = 3'd4,
                S_AR2 = 3'd5;
 
-    // NORMAL 模式自适应用的计数阈值
-    localparam integer MIN_GREEN_C = MIN_GREEN_S * CLK_HZ;
-    localparam integer MAX_GREEN_C = MAX_GREEN_S * CLK_HZ;
-    localparam integer YELLOW_C    = YELLOW_S    * CLK_HZ;
-    localparam integer ALL_RED_C   = ALL_RED_S   * CLK_HZ;
-    localparam integer GAP_C       = GAP_S       * CLK_HZ;
+    // ★ 每 1 个"仿真秒"需要的时钟数：真实频率 / 加速倍数
+    localparam integer TICKS_PER_SEC = CLK_HZ / SEC_SCALE;
+    
+    // NORMAL 模式自适应用的计数阈值（仿真秒 → 时钟）
+    localparam integer MIN_GREEN_C = MIN_GREEN_S * TICKS_PER_SEC;
+    localparam integer MAX_GREEN_C = MAX_GREEN_S * TICKS_PER_SEC;
+    localparam integer YELLOW_C    = YELLOW_S    * TICKS_PER_SEC;
+    localparam integer ALL_RED_C   = ALL_RED_S   * TICKS_PER_SEC;
+    localparam integer GAP_C       = GAP_S       * TICKS_PER_SEC;
 
-    // 高峰模式固定绿灯时间对应的计数阈值
-    localparam integer MORN_MAIN_C = MORN_MAIN_S * CLK_HZ;
-    localparam integer MORN_SIDE_C = MORN_SIDE_S * CLK_HZ;
-    localparam integer EVEN_MAIN_C = EVEN_MAIN_S * CLK_HZ;
-    localparam integer EVEN_SIDE_C = EVEN_SIDE_S * CLK_HZ;
+    // 高峰模式固定绿灯时间对应的计数阈值（仿真秒 → 时钟）
+    localparam integer MORN_MAIN_C = MORN_MAIN_S * TICKS_PER_SEC;
+    localparam integer MORN_SIDE_C = MORN_SIDE_S * TICKS_PER_SEC;
+    localparam integer EVEN_MAIN_C = EVEN_MAIN_S * TICKS_PER_SEC;
+    localparam integer EVEN_SIDE_C = EVEN_SIDE_S * TICKS_PER_SEC;
+        // 高峰模式下：主/辅路的"目标绿灯时间"（虚拟秒）
+    wire [7:0] main_green_target_s =
+        (mode == MORNING_PEAK) ? MORN_MAIN_S[7:0] :
+        (mode == EVENING_PEAK) ? EVEN_MAIN_S[7:0] :
+                                 8'd0;       // NORMAL 模式没有固定时间，用 0
+
+    wire [7:0] side_green_target_s =
+        (mode == MORNING_PEAK) ? MORN_SIDE_S[7:0] :
+        (mode == EVENING_PEAK) ? EVEN_SIDE_S[7:0] :
+                                 8'd0;
 
     // 提供给 VGA 的"真实秒数"（截断到 0~255，VGA 里再截到两位数）
     assign peak_main_green_s = (mode == MORNING_PEAK) ? MORN_MAIN_S[7:0] :
@@ -72,6 +91,8 @@ module traffic_ctrl_adaptive #(
     reg [31:0] phase_cnt;  // 当前阶段计数
     reg [31:0] gap_cnt;    // 自适应用的 gap 计数
     reg [31:0] sec_div;    // 秒分频计数
+    reg [31:0] green_sec_div;   // 绿灯用的 1s 分频
+    reg [7:0]  green_elapsed_s; // 当前这段绿灯已经过去的"虚拟秒"
 
     // 输出灯色组合
     always @* begin
@@ -86,6 +107,51 @@ module traffic_ctrl_adaptive #(
             S_AR2: begin main_R = 1; side_R = 1; end  // 全红
             default: begin main_R = 1; side_R = 1; end
         endcase
+    end
+        // 绿灯秒计数：MG / SG 状态下，每 "1 秒" 加一
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            green_sec_div   <= 32'd0;
+            green_elapsed_s <= 8'd0;
+        end else begin
+            // 只有在主绿或辅绿阶段才计数，其它状态清零
+            if (state == S_MG || state == S_SG) begin
+                // ★ 每经过 1 个"虚拟秒"（现实 1/4 秒），green_elapsed_s+1
+                if (green_sec_div >= TICKS_PER_SEC - 1) begin
+                    green_sec_div <= 32'd0;
+                    if (green_elapsed_s != 8'hFF)
+                        green_elapsed_s <= green_elapsed_s + 1'b1;
+                end else begin
+                    green_sec_div <= green_sec_div + 1'b1;
+                end
+            end else begin
+                green_sec_div   <= 32'd0;
+                green_elapsed_s <= 8'd0;
+            end
+        end
+    end
+    // 根据当前状态 / 模式，算数码管要显示的绿灯剩余秒数
+    always @(*) begin
+        green_on_main = 1'b0;
+        green_left_s  = 8'd0;
+
+        if (state == S_MG) begin
+            // 主路绿灯
+            green_on_main = 1'b1;
+            if (main_green_target_s > green_elapsed_s)
+                green_left_s = main_green_target_s - green_elapsed_s;
+            else
+                green_left_s = 8'd0;
+
+        end else if (state == S_SG) begin
+            // 辅路绿灯
+            green_on_main = 1'b0;
+            if (side_green_target_s > green_elapsed_s)
+                green_left_s = side_green_target_s - green_elapsed_s;
+            else
+                green_left_s = 8'd0;
+        end
+        // 其它状态就保持 0
     end
 
     // 主状态机 + 计数
@@ -106,11 +172,11 @@ module traffic_ctrl_adaptive #(
             else
                 gap_cnt <= gap_cnt + 1'b1;
 
-            // 秒计数 / 行人过街时间
-            if (sec_div >= CLK_HZ-1) begin
+            // 秒计数 / 行人过街时间（单位：仿真秒）
+            if (sec_div >= TICKS_PER_SEC-1) begin       // ★ 用仿真秒的时钟数
                 sec_div <= 32'd0;
                 if ((state == S_SG) && in_crossing && (cur_sec != 8'hFF))
-                    cur_sec <= cur_sec + 1'b1;
+                    cur_sec <= cur_sec + 1'b1;          // cur_sec 也是"仿真秒"
             end else begin
                 if ((state == S_SG) && in_crossing)
                     sec_div <= sec_div + 1'b1;

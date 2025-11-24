@@ -27,7 +27,7 @@ set_property IOSTANDARD LVCMOS33 [get_ports {vga_r[*] vga_g[*] vga_b[*] hsync vs
 # ϵͳʱ�ӣ�PL 100MHz��
 set_property PACKAGE_PIN AA18 [get_ports sys_clk]
 set_property IOSTANDARD LVCMOS33 [get_ports sys_clk]
-# ���� Vivado�����ǵ���ʱ�����룬����ר�ò�ֲ���
+# ���� Vivado�����ǵ���ʱ�����룬����ר�ò�ֲ���?
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets -of_objects [get_ports sys_clk]]
 create_clock -period 10.000 [get_ports sys_clk]
 
@@ -62,3 +62,22 @@ set_property PACKAGE_PIN V17 [get_ports {uart_rx_pin}]
 set_property IOSTANDARD LVCMOS33 [get_ports {uart_rx_pin}]
 set_property PULLUP true [get_ports {uart_rx_pin}]
 set_false_path -from [get_ports {uart_rx_pin}]
+## 7-seg segment pins
+set_property PACKAGE_PIN U14  [get_ports SEG_CA]
+set_property PACKAGE_PIN V13  [get_ports SEG_CB]
+set_property PACKAGE_PIN V14  [get_ports SEG_CC]
+set_property PACKAGE_PIN W13  [get_ports SEG_CD]
+set_property PACKAGE_PIN Y13  [get_ports SEG_CE]
+set_property PACKAGE_PIN Y14  [get_ports SEG_CF]
+set_property PACKAGE_PIN AA13 [get_ports SEG_CG]
+set_property PACKAGE_PIN AB14 [get_ports SEG_DP]
+
+## 7-seg digit select pins
+set_property PACKAGE_PIN R15 [get_ports SEG_BIT1]
+set_property PACKAGE_PIN R16 [get_ports SEG_BIT2]
+set_property PACKAGE_PIN P16 [get_ports SEG_BIT3]
+set_property PACKAGE_PIN M20 [get_ports SEG_BIT4]
+
+## IO standard
+set_property IOSTANDARD LVCMOS33 [get_ports {SEG_CA SEG_CB SEG_CC SEG_CD SEG_CE SEG_CF SEG_CG SEG_DP}]
+set_property IOSTANDARD LVCMOS33 [get_ports {SEG_BIT1 SEG_BIT2 SEG_BIT3 SEG_BIT4}]

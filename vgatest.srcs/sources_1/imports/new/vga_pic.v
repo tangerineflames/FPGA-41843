@@ -869,7 +869,7 @@ endfunction
                 3'd4: ch = ":";
                 3'd5: ch = (m_tens == 4'd0) ? 8'h20 : (8'h30 + {4'b0000, m_tens});
                 3'd6: ch =  8'h30 + {4'b0000, m_ones};
-                3'd7: ch = "s";
+                3'd7: ch = 8'h20;  // 画空格，相当于这一列空出来
                 default: ch = 8'h20;
             endcase
             main_word_ascii = ch;
@@ -918,7 +918,7 @@ endfunction
                 3'd4: ch = ":";
                 3'd5: ch = (s_tens == 4'd0) ? 8'h20 : (8'h30 + {4'b0000, s_tens});
                 3'd6: ch =  8'h30 + {4'b0000, s_ones};
-                3'd7: ch = "s";
+                3'd7: ch = 8'h20;  // 画空格，相当于这一列空出来
                 default: ch = 8'h20;
             endcase
             side_word_ascii = ch;

@@ -2,8 +2,8 @@
 # Vivado v2018.3 (64-bit)
 # SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
 # IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
-# Start of session at: Sat Nov 22 22:31:11 2025
-# Process ID: 34868
+# Start of session at: Tue Nov 25 03:42:57 2025
+# Process ID: 36208
 # Current directory: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1
 # Command line: vivado.exe -log vga_colorbar.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source vga_colorbar.tcl
 # Log file: C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.runs/synth_1/vga_colorbar.vds

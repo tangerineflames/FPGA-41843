@@ -37,7 +37,7 @@ module traffic_adapt2 #(
   input  wire        ped_active_tb,
   input  wire        mode_adapt_sw,  // 1=ï¿½ï¿½ï¿½ï¿½Ó¦
 
-  // ï¿½Ï²ã£¨scene_crossï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±Í¨ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ò»ï¿½Â£ï¿½Ã¿ï¿½Ä¸ï¿½ï¿½ï¿½?
+  // ï¿½Ï²ã£¨scene_crossï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±Í¨ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ò»ï¿½Â£ï¿½Ã¿ï¿½Ä¸ï¿½ï¿½ï¿??
   input  wire [7:0]  cfg_LRS,  // LR Ö±ï¿½ï¿½
   input  wire [7:0]  cfg_LRL,  // LR ï¿½ï¿½×ª
   input  wire [7:0]  cfg_LRR,  // LR ï¿½ï¿½×ª
@@ -58,14 +58,23 @@ module traffic_adapt2 #(
   output wire [7:0]  green_sec_LR_R,
   output wire [7:0]  green_sec_TB_S,
   output wire [7:0]  green_sec_TB_L,
-  output wire [7:0]  green_sec_TB_R
+  output wire [7:0]  green_sec_TB_R,
+    // ĞÂÔö£º¸øÊıÂë¹ÜÓÃµÄ"µ±Ç°ÂÌµÆÊ£ÓàÊ±¼ä"ºÍµ±Ç°ÏàÎ»ÀàĞÍ
+  output reg  [7:0]  phase_left_s,   // 0~99£¬µ±Ç°ÏàÎ»»¹Ê£¶àÉÙ"ĞéÄâÃë"
+  output reg  [2:0]  phase_id        // 0=ÎŞÂÌµÆ,1=LRÖ±,2=LR×ó,3=LRÓÒ,4=TBÖ±,5=TB×ó,6=TBÓÒ
 );
 
   localparam [1:0] C_RED=2'd0, C_YEL=2'd1, C_GRN=2'd2;
-
-  // ================= åŸºå‡†æ—¶é•¿ï¼šæ ¹æ®æ¨¡å¼é€‰æ‹©ä¸åŒæ¥æº =================
-  // è‡ªé€‚åº”æ¨¡å¼ï¼šä½¿ç”¨å†…ç½®å‚æ•°BASE_*ï¼ˆä¸å—UARTå½±å“ï¼‰
-  // å›ºå®šæ¨¡å¼ï¼šä½¿ç”¨cfg_*ï¼ˆUARTé…ç½®ï¼‰
+  localparam [2:0] PH_NONE = 3'd0,
+                   PH_LR_S = 3'd1,
+                   PH_LR_L = 3'd2,
+                   PH_LR_R = 3'd3,
+                   PH_TB_S = 3'd4,
+                   PH_TB_L = 3'd5,
+                   PH_TB_R = 3'd6;  
+  // ================= åŸºå‡†æ—¶é•¿ï¼šæ ¹æ®æ¨¡å¼é?‰æ‹©ä¸åŒæ¥æº =================
+  // è‡ªé?‚åº”æ¨¡å¼ï¼šä½¿ç”¨å†…ç½®å‚æ•°BASE_*ï¼ˆä¸å—UARTå½±å“ï¼?
+  // å›ºå®šæ¨¡å¼ï¼šä½¿ç”¨cfg_*ï¼ˆUARTé…ç½®ï¼?
   wire [7:0] base_LRS = mode_adapt_sw ? BASE_S : cfg_LRS;
   wire [7:0] base_LRL = mode_adapt_sw ? BASE_L : cfg_LRL;
   wire [7:0] base_LRR = mode_adapt_sw ? BASE_R : cfg_LRR;
@@ -73,13 +82,13 @@ module traffic_adapt2 #(
   wire [7:0] base_TBL = mode_adapt_sw ? BASE_L : cfg_TBL;
   wire [7:0] base_TBR = mode_adapt_sw ? BASE_R : cfg_TBR;
 
-  // ====== ï¿½ï¿½Ê±ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ô­Ê¼/ï¿½ï¿½Ò»ï¿½Ä£ï¿½======  -- ï¿½ï¿½Ú¶ï¿½ï¿½İ±ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½?
+  // ====== ï¿½ï¿½Ê±ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ô­Ê¼/ï¿½ï¿½Ò»ï¿½Ä£ï¿½======  -- ï¿½ï¿½Ú¶ï¿½ï¿½İ±ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿??
   reg [7:0] add_S_LR, add_L_LR, add_R_LR;
   reg [7:0] add_S_TB, add_L_TB, add_R_TB;
   reg [7:0] n_add_S_LR, n_add_L_LR, n_add_R_LR;
   reg [7:0] n_add_S_TB, n_add_L_TB, n_add_R_TB;
 
-  // === Ä£Ê½ï¿½Å¿Øºï¿½Ä¼ï¿½Ê±ï¿½ï¿½ï¿½Ì¶ï¿½Ä£Ê½ï¿½ï¿½?=0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½= n_add_*ï¿½ï¿½===
+  // === Ä£Ê½ï¿½Å¿Øºï¿½Ä¼ï¿½Ê±ï¿½ï¿½ï¿½Ì¶ï¿½Ä£Ê½ï¿½ï¿??=0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½= n_add_*ï¿½ï¿½===
   wire [7:0] g_add_S_LR = mode_adapt_sw ? n_add_S_LR : 8'd0;
   wire [7:0] g_add_L_LR = mode_adapt_sw ? n_add_L_LR : 8'd0;
   wire [7:0] g_add_R_LR = mode_adapt_sw ? n_add_R_LR : 8'd0;
@@ -123,7 +132,7 @@ module traffic_adapt2 #(
   wire tb_in_S = useB_TB ? in_range(B0,B1,t_cnt) : in_range(U0,U1,t_cnt);
   wire tb_in_L = useB_TB ? in_range(B3,B4,t_cnt) : in_range(U3,U4,t_cnt);
 
-  // ====== Ê±ï¿½ï¿½/ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ã£ºÖ»ï¿½ï¿½ sec_tick ï¿½ï¿½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½İµÄ½ï¿½ï¿½ï¿½? ======
+  // ====== Ê±ï¿½ï¿½/ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ã£ºÖ»ï¿½ï¿½ sec_tick ï¿½ï¿½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½İµÄ½ï¿½ï¿½ï¿?? ======
   always @(posedge clk or negedge rst_n) begin
     if(!rst_n) begin
       t_cnt <= 0;
@@ -272,7 +281,7 @@ module traffic_adapt2 #(
   reg       ped_has_tb_d, ped_active_tb_d;
   reg [3:0] ped_on_cnt_tb;
 
-  // ï¿½ï¿½ small ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ S/L ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ mini-FSMï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½?
+  // ï¿½ï¿½ small ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ S/L ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ mini-FSMï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿??
   wire lr_fsm_enable = (mode_adapt_sw && lr_small && (lr_in_S || lr_in_L));
   wire tb_fsm_enable = (mode_adapt_sw && tb_small && (tb_in_S || tb_in_L));
 
@@ -298,7 +307,7 @@ module traffic_adapt2 #(
       ped_has_lr_d<=0; ped_active_lr_d<=0;
       ped_has_tb_d<=0; ped_active_tb_d<=0;
     end else begin
-      // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½?
+      // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ï¿??
       ped_has_lr_d    <= ped_has_lr;
       ped_active_lr_d <= ped_active_lr;
       ped_has_tb_d    <= ped_has_tb;
@@ -328,7 +337,7 @@ module traffic_adapt2 #(
             RT_G: begin
               if (lr_in_S && ped_on_ok_lr && min_g_ok_lr) begin
                 rtLR_state <= RT_Y;
-                rtLR_sec   <= 0; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÆµÆ¼ï¿½ï¿½ï¿½?
+                rtLR_sec   <= 0; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÆµÆ¼ï¿½ï¿½ï¿??
               end
             end
             RT_Y: begin
@@ -341,7 +350,7 @@ module traffic_adapt2 #(
               // ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ë¿ªï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ğ´ï¿½ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½Ì£ï¿½ï¿½ï¿½ï¿½ï¿½ sec_tick
               if (lr_in_L || !ped_has_lr || !ped_active_lr || (lr_in_S && !ped_active_lr)) begin
                 rtLR_state <= RT_G;
-                rtLR_sec   <= 0;   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?
+                rtLR_sec   <= 0;   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿??
                 rtLR_g_sec <= 0;   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬MIN ï¿½ï¿½ï¿½Â¼ï¿½
               end
             end
@@ -453,14 +462,82 @@ module traffic_adapt2 #(
       col_LR_S = C_GRN;
     end
 
-    // ========== Ë«ï¿½ï¿½Ğ¡Ğ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½Ë«ï¿½ï¿½ï¿½ï¿½×ªÒ»ï¿½ï¿½ï¿½? ==========
+    // ========== Ë«ï¿½ï¿½Ğ¡Ğ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½Ë«ï¿½ï¿½ï¿½ï¿½×ªÒ»ï¿½ï¿½ï¿?? ==========
     if (mode_adapt_sw && lr_small && tb_small && !ped_has_lr && !ped_has_tb) begin
       col_LR_R = C_GRN; col_TB_R = C_GRN;
     end
   end
+  // ========== µ±Ç°ÂÌµÆÏàÎ»µ¹¼ÆÊ±£¨¸øÊıÂë¹ÜÓÃ£© ==========
+  reg [15:0] left_tmp;
 
-  // ====== ï¿½Ìµï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½? ======
-  // ×¢ï¿½ï¿½ï¿½Ì¶ï¿½Ä£Ê½ï¿½ï¿½ g_add_* = 0ï¿½ï¿½ï¿½ï¿½Ë´Ë´ï¿½ï¿½ï¿½Ê¾ï¿½Ä¾ï¿½ï¿½ï¿½? base_*ï¿½ï¿½
+  always @(*) begin
+    phase_id   = PH_NONE;
+    left_tmp   = 16'd0;
+
+    if (!mode_adapt_sw) begin
+      // ============= ¹Ì¶¨ÅäÊ±Ä£Ê½£ºS/L/R ¶¼ÓĞµ¹¼ÆÊ± =============
+      // 1) LR ·½Ïò£ºÖ±ĞĞ -> ×ó×ª -> ÓÒ×ª
+      if (in_range(T0, T1, t_cnt)) begin
+        phase_id = PH_LR_S;
+        left_tmp = (T1 > t_cnt) ? (T1 - t_cnt) : 16'd0;
+      end
+      else if (in_range(T3, T4, t_cnt)) begin
+        phase_id = PH_LR_L;
+        left_tmp = (T4 > t_cnt) ? (T4 - t_cnt) : 16'd0;
+      end
+      else if (in_range(T6, T7, t_cnt)) begin
+        phase_id = PH_LR_R;
+        left_tmp = (T7 > t_cnt) ? (T7 - t_cnt) : 16'd0;
+      end
+
+      // 2) TB ·½Ïò£ºÖ±ĞĞ -> ×ó×ª -> ÓÒ×ª
+      else if (in_range(U0, U1, t_cnt)) begin
+        phase_id = PH_TB_S;
+        left_tmp = (U1 > t_cnt) ? (U1 - t_cnt) : 16'd0;
+      end
+      else if (in_range(U3, U4, t_cnt)) begin
+        phase_id = PH_TB_L;
+        left_tmp = (U4 > t_cnt) ? (U4 - t_cnt) : 16'd0;
+      end
+      else if (in_range(U6, U7, t_cnt)) begin
+        phase_id = PH_TB_R;
+        left_tmp = (U7 > t_cnt) ? (U7 - t_cnt) : 16'd0;
+      end
+      // ÆäËûÏàÎ»£¨È«ºì¡¢»ÆµÆ£©±£³Ö PH_NONE / 0
+    end
+    else begin
+      // ============= ×ÔÊÊÓ¦Ä£Ê½£ºÖ»¶ÔÖ±ĞĞ S ×öµ¹¼ÆÊ±£¬ÓÒ×ª¿ÉÒÔÃ»ÓĞ =============
+      // LR Ö±ĞĞÂÌ
+      if (lr_in_S && (col_LR_S == C_GRN)) begin
+        phase_id = PH_LR_S;
+        if (useA_LR)
+          left_tmp = (A1 > t_cnt) ? (A1 - t_cnt) : 16'd0;
+        else
+          left_tmp = (T1 > t_cnt) ? (T1 - t_cnt) : 16'd0;
+      end
+      // TB Ö±ĞĞÂÌ
+      else if (tb_in_S && (col_TB_S == C_GRN)) begin
+        phase_id = PH_TB_S;
+        if (useB_TB)
+          left_tmp = (B1 > t_cnt) ? (B1 - t_cnt) : 16'd0;
+        else
+          left_tmp = (U1 > t_cnt) ? (U1 - t_cnt) : 16'd0;
+      end
+      else begin
+        phase_id = PH_NONE;
+        left_tmp = 16'd0;
+      end
+    end
+
+    // ÏŞ·ùµ½ 0~255£¬¸øÊıÂë¹ÜÓÃ¹»ÁË
+    if (left_tmp > 16'd255)
+      phase_left_s = 8'd255;
+    else
+      phase_left_s = left_tmp[7:0];
+  end
+
+  // ====== ï¿½Ìµï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿?? ======
+  // ×¢ï¿½ï¿½ï¿½Ì¶ï¿½Ä£Ê½ï¿½ï¿½ g_add_* = 0ï¿½ï¿½ï¿½ï¿½Ë´Ë´ï¿½ï¿½ï¿½Ê¾ï¿½Ä¾ï¿½ï¿½ï¿?? base_*ï¿½ï¿½
   //     ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½Ê¾ base_* + ï¿½Ñ¼ï¿½ï¿½ï¿½Ä¼Ó³É£ï¿½S/Lï¿½ï¿½ï¿½ï¿½R ï¿½Ú¹Ì¶ï¿½Ä£Ê½ï¿½Â²ï¿½ï¿½ï¿½Ğ§ï¿½ï¿½ï¿½ï¿½
   assign green_sec_LR_S = base_LRS + g_add_S_LR;
   assign green_sec_LR_L = base_LRL + g_add_L_LR;

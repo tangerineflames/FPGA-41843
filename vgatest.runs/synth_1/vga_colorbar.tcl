@@ -42,6 +42,7 @@ read_verilog -library xil_defaultlib {
   C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/mode_label.v
   C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/ped_sensor.v
   C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/scene_anim.v
+  C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/seg7_4digit.v
   C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/sincos90_q88.v
   C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/imports/new/tick_anim.v
   C:/Users/Conor/Desktop/zynq_fpga/FPGA-41843-master/FPGA-41843-master/vgatest.srcs/sources_1/new/traffic_adapt2.v
