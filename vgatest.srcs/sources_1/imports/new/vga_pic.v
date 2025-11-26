@@ -658,7 +658,8 @@ endfunction
                                         (8'h30 + {4'b0000, walk_tens_digit})) :
         (walk_num_ch_idx == 2'd1) ?
             (8'h30 + {4'b0000, walk_ones_digit}) :
-            8'h73; // 's'
+            8'h20; // ' ' 空格，原来这里是 8'h73 ('s')
+
 
     wire [7:0] walk_num_row_bits;
     font u_font_walk_num(

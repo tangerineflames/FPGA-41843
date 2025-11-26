@@ -140,14 +140,18 @@ uart_rx #(
     wire [7:0] car_count_up_sc;
     wire [7:0] car_count_down_sc;
     wire [7:0] people_count_sc;
-
+    wire ped_cfg_normal_sel = ped_sw_1; 
     traffic_count_map #(
         .UP_MORNING_PEAK(6),     .DN_MORNING_PEAK(6),
         .UP_NORMAL(3),           .DN_NORMAL(3),
         .UP_EVENING_PEAK(6),     .DN_EVENING_PEAK(6),
-        .PEOPLE_MORNING_PEAK(7), .PEOPLE_NORMAL(2), .PEOPLE_EVENING_PEAK(7)
+        .PEOPLE_MORNING_PEAK(7), 
+        .PEOPLE_NORMAL(2),       // NORMAL 模式"少人"：2 人
+        .PEOPLE_NORMAL_ALT(5),   // NORMAL 模式"多人"：5 人
+        .PEOPLE_EVENING_PEAK(7)
     ) u_count (
         .mode          (mode),
+        .ped_cfg_normal_sel (ped_cfg_normal_sel),
         .car_count_up  (car_count_up_sc),
         .car_count_down(car_count_down_sc),
         .people_count  (people_count_sc)
@@ -227,11 +231,13 @@ uart_rx #(
     wire [7:0]  green_left_s;
     wire        green_on_main;
 
-    // 锟斤拷锟斤拷锟斤拷锟斤拷效锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷陆锟斤拷时锟斤拷锟斤拷
     reg in_crossing_d1;
     reg [7:0] walk_final_sec;
-    reg [3:0] eff_tens, eff_ones, eff_frac;  // 效锟绞诧拷殖傻锟轿伙拷锟绞★拷锟?? vga_pic 锟叫的筹拷锟斤拷
-    reg [9:0] eff_val;  // 效锟斤拷屑锟斤拷锟斤拷
+    reg [3:0] eff_tens, eff_ones, eff_frac;  // 效率 xx.x
+    reg [9:0] eff_val;                       // 只是为了调试保留
+
+    integer eff_raw;  // 用来做临时计算的整型
+
     always @(posedge vga_clk or negedge rst_n) begin
         if (!rst_n) begin
             in_crossing_d1 <= 1'b0;
@@ -245,19 +251,23 @@ uart_rx #(
 
             // ★ 只在 NORMAL 模式下统计 walktime / efficiency
             if (mode_vga == 2'd1) begin
+                // "上一拍在斑马线，这一拍没人了" -> 一批过街结束
                 if (in_crossing_d1 && !in_crossing && (walk_cur_sec > 0)) begin
                     walk_final_sec <= walk_cur_sec;
 
-                    if ((people_count * 10) / walk_cur_sec > 999) begin
-                        eff_tens <= 4'd9;
-                        eff_ones <= 4'd9;
-                        eff_frac <= 4'd9;
-                    end else begin
-                        eff_val  <= (people_count * 10) / walk_cur_sec;
-                        eff_tens <= eff_val / 100;
-                        eff_ones <= (eff_val % 100) / 10;
-                        eff_frac <= eff_val % 10;
-                    end
+                    // 临时算出原始效率 people_count*10 / walk_cur_sec
+                    eff_raw = (people_count * 10) / walk_cur_sec;
+
+                    // 饱和到 0~999
+                    if (eff_raw > 999)
+                        eff_raw = 999;
+                    else if (eff_raw < 0)
+                        eff_raw = 0;
+
+                    eff_val  <= eff_raw[9:0];         // 方便你以后调试
+                    eff_tens <= eff_raw / 100;
+                    eff_ones <= (eff_raw % 100) / 10;
+                    eff_frac <= eff_raw % 10;
                 end
             end else begin
                 // ★ 高峰模式：这些数不用，统一清零
@@ -270,6 +280,7 @@ uart_rx #(
         end
     end
 
+
     traffic_ctrl_adaptive #(
     .CLK_HZ       (25_175_000),
     .SEC_SCALE    (4),      // ★ 新增
@@ -281,9 +292,9 @@ uart_rx #(
     .GAP_S        (4),
 
     .MORN_MAIN_S  (48),
-    .MORN_SIDE_S  (20),
+    .MORN_SIDE_S  (28),
     .EVEN_MAIN_S  (48),
-    .EVEN_SIDE_S  (20)
+    .EVEN_SIDE_S  (28)
     ) u_tl (
         .clk      (vga_clk),
         .rst_n    (rst_n),
@@ -356,9 +367,11 @@ uart_rx #(
         else begin scene_sel_s0 <= scene_sel_sc; scene_sel_s1 <= scene_sel_s0; end
     end
     wire scene_sel = scene_sel_s1;
+    
     // 来自 traffic_ctrl_adaptive 的数码管值（街道场景）
-    wire [7:0] green_left_s_street;
-    wire       green_on_main_street;
+    wire [7:0] green_left_s_street = green_left_s;
+    wire       green_on_main_street = green_on_main;
+
     
     // 来自 traffic_adapt2 的数码管值（十字路口场景）
     wire [7:0] phase_left_s_cross;
@@ -369,7 +382,7 @@ uart_rx #(
     seg7_4digit u_seg7 (
         .clk      (sys_clk),      // 用 100MHz，刷新会比较稳定
         .rst_n    (rst_n),
-        .value    (green_left_s), // 当前绿灯剩余"虚拟秒" 0~99
+        .value    (seg_value), // 当前绿灯剩余"虚拟秒" 0~99
 
         .SEG_CA   (SEG_CA),
         .SEG_CB   (SEG_CB),
@@ -430,7 +443,10 @@ scene_cross #(
   .mode_adapt_sw(mode_adapt_sw),
     .uart_rx_valid (uart_rx_valid_vga),     // 浣跨敤鍚屾鍚庣殑淇″彿
   .uart_rx_byte  (uart_rx_byte_vga),      // 浣跨敤鍚屾鍚庣殑淇″彿
-  .pix_cross(pix_cross)
+  .pix_cross(pix_cross),
+  // 新增：把十字路口的倒计时接出来
+  .phase_left_s_out(phase_left_s_cross),
+  .phase_id_out    (phase_id_cross) 
 );
 
     // 选锟斤拷锟斤拷锟斤拷锟揭伙拷谆锟斤拷锟?????

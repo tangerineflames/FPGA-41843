@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GenRun Id="synth_1" LaunchPart="xc7z020clg484-1" LaunchTime="1764013376">
+<GenRun Id="synth_1" LaunchPart="xc7z020clg484-1" LaunchTime="1764177389">
   <File Type="PA-TCL" Name="vga_colorbar.tcl"/>
   <File Type="RDS-PROPCONSTRS" Name="vga_colorbar_drc_synth.rpt"/>
   <File Type="REPORTS-TCL" Name="vga_colorbar_reports.tcl"/>

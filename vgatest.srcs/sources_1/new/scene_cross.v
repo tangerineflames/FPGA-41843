@@ -79,7 +79,10 @@ input  wire [7:0]  uart_rx_byte,
   
     //  鏂板锛氳繃琛楀崰鐢ㄤ俊鍙凤紙鐢ㄤ簬鍒ゆ柇琛屼汉鏄惁姝ｅ湪杩囬┈璺級
   output reg  ped_cross_lr_out,
-  output reg  ped_cross_tb_out
+  output reg  ped_cross_tb_out,
+    // 新增：把 traffic_adapt2 的倒计时透出来
+  output wire [7:0]  phase_left_s_out,
+  output wire [2:0]  phase_id_out
 );
     // 棰滆壊
     localparam [15:0] BLACK  = 16'h0000;
@@ -610,15 +613,15 @@ end else if (respawn_arm_lr) begin
   end
 end
 
-
 if (respawn_done_tb_p) begin
   respawn_req_tb <= 1'b0;
 end else if (respawn_arm_tb) begin
-  if (tb_green_fall) begin
-    respawn_req_tb <= 1'b1;  // 锟斤拷锟斤拷锟斤拷->锟斤拷锟截伙拷锟斤拷
+  // 和 LR 一样：既看绿灯下降沿，也看"已经是红灯 + wrap 了一段时间"
+  if ( tb_green_fall ||
+      (!tb_green && (wrap_secs_tb >= WRAP_FORCE_RESPAWN_S)) ) begin
+    respawn_req_tb <= 1'b1;
   end
 end
-
 
   end
 end
@@ -761,46 +764,46 @@ always @(posedge vga_clk or negedge sys_rst_n) begin
       end
     end
 
-    // ================= 锟斤拷锟斤拷锟叫讹拷锟斤拷锟斤拷锟斤拷圆锟?+锟斤拷全锟斤拷锟斤拷 -> wrap锟斤拷 =================
-    // 锟斤拷啵篸ir_left=+1 锟斤拷->锟铰ｏ拷dir_left=-1 锟斤拷->锟斤拷
-    if (entered_left) begin
-      if (dir_left ==  1) begin
-        // 头锟斤拷越锟斤拷 YB + 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷 PED_N/PED_STEP/PED_R锟斤拷
-        if (($signed({1'b0,ped_y_left}) - $signed((PED_N-1)*PED_STEP) - $signed(PED_R))
-              >= $signed(YB + EXIT_GUARD)) begin
-          entered_left   <= 1'b0;
-          left_wrapped   <= 1'b1;
-          respawn_arm_tb <= 1'b1;
-        end
-      end else begin
-        // 头锟斤拷越锟斤拷 YT - 锟斤拷锟斤拷
-        if (($signed({1'b0,ped_y_left}) + $signed((PED_N-1)*PED_STEP) + $signed(PED_R))
-              <= $signed(YT - EXIT_GUARD)) begin
-          entered_left   <= 1'b0;
-          left_wrapped   <= 1'b1;
-          respawn_arm_tb <= 1'b1;
-        end
-      end
-    end
+// ================= 行人出界 + wrap（改成和 LR 同风格，但不依赖整队长度） =================
+// 思路：只要"队头"越过出口保护线，就认为这一批已经通过，触发 wrap。
 
-    // 锟揭侧：dir_right=-1 锟斤拷->锟较ｏ拷dir_right=+1 锟斤拷->锟斤拷
-    if (entered_right) begin
-      if (dir_right == -1) begin
-        if (($signed({1'b0,ped_y_right}) + $signed((PED_N-1)*PED_STEP) + $signed(PED_R))
-              <= $signed(YT - EXIT_GUARD)) begin
-          entered_right  <= 1'b0;
-          right_wrapped  <= 1'b1;
-          respawn_arm_tb <= 1'b1;
-        end
-      end else begin
-        if (($signed({1'b0,ped_y_right}) - $signed((PED_N-1)*PED_STEP) - $signed(PED_R))
-              >= $signed(YB + EXIT_GUARD)) begin
-          entered_right  <= 1'b0;
-          right_wrapped  <= 1'b1;
-          respawn_arm_tb <= 1'b1;
-        end
-      end
+// 左侧：dir_left = +1 表示 上 -> 下（你现在用的方向）
+if (entered_left) begin
+  if (dir_left ==  1) begin
+    // 队头 ped_y_left 往下走，超过 YB + EXIT_GUARD + CLEARANCE_Y 就算走完
+    if ($signed({1'b0,ped_y_left}) >= $signed(YB + EXIT_GUARD + CLEARANCE_Y)) begin
+      entered_left   <= 1'b0;
+      left_wrapped   <= 1'b1;
+      respawn_arm_tb <= 1'b1;
     end
+  end else begin
+    // 预留：如果以后你改成下 -> 上，这里是镜像条件
+    if ($signed({1'b0,ped_y_left}) <= $signed(YT - EXIT_GUARD - CLEARANCE_Y)) begin
+      entered_left   <= 1'b0;
+      left_wrapped   <= 1'b1;
+      respawn_arm_tb <= 1'b1;
+    end
+  end
+end
+
+// 右侧：dir_right = -1 表示 下 -> 上（你现在的方向）
+if (entered_right) begin
+  if (dir_right == -1) begin
+    // 队头 ped_y_right 往上走，低于 YT - EXIT_GUARD - CLEARANCE_Y 就算走完
+    if ($signed({1'b0,ped_y_right}) <= $signed(YT - EXIT_GUARD - CLEARANCE_Y)) begin
+      entered_right  <= 1'b0;
+      right_wrapped  <= 1'b1;
+      respawn_arm_tb <= 1'b1;
+    end
+  end else begin
+    // 预留：如果反向，下 -> 上 / 上 -> 下，对称写法
+    if ($signed({1'b0,ped_y_right}) >= $signed(YB + EXIT_GUARD + CLEARANCE_Y)) begin
+      entered_right  <= 1'b0;
+      right_wrapped  <= 1'b1;
+      respawn_arm_tb <= 1'b1;
+    end
+  end
+end
 
     // ================= 位锟斤拷 =================
     // 锟斤拷锟?
@@ -1145,7 +1148,10 @@ traffic_adapt2 #(
   .green_sec_TB_R (green_sec_TB_R),
   // 只锟斤拷锟斤拷锟斤拷6锟斤拷锟斤拷锟斤拷
   .cfg_LRS(cfg_LRS), .cfg_LRL(cfg_LRL), .cfg_LRR(cfg_LRR),
-  .cfg_TBS(cfg_TBS), .cfg_TBL(cfg_TBL), .cfg_TBR(cfg_TBR)
+  .cfg_TBS(cfg_TBS), .cfg_TBL(cfg_TBL), .cfg_TBR(cfg_TBR),
+  .phase_left_s (phase_left_s_out),
+  .phase_id     (phase_id_out)
+  
 );
 
 // ===================== 妯″紡鏍囩鏄剧ず妯″潡 =====================

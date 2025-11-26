@@ -12,9 +12,9 @@ module traffic_ctrl_adaptive #(
     parameter integer FAST_RELEASE= 1,
     // ] 早 / 晚高峰固定绿灯时间（秒）：主 12，辅 5
     parameter integer MORN_MAIN_S = 12,  // 早高峰主路绿 12s
-    parameter integer MORN_SIDE_S = 5,   // 早高峰支路绿 5s
+    parameter integer MORN_SIDE_S = 7,   // 早高峰支路绿 7s
     parameter integer EVEN_MAIN_S = 12,  // 晚高峰主路绿 12s
-    parameter integer EVEN_SIDE_S = 5    // 晚高峰支路绿 5s
+    parameter integer EVEN_SIDE_S = 7    // 晚高峰支路绿 7s
 
 )(
     input  wire        clk,
