@@ -248,35 +248,36 @@ uart_rx #(
             eff_val        <= 10'd0;
         end else begin
             in_crossing_d1 <= in_crossing;
-
-            // ★ 只在 NORMAL 模式下统计 walktime / efficiency
-            if (mode_vga == 2'd1) begin
-                // "上一拍在斑马线，这一拍没人了" -> 一批过街结束
-                if (in_crossing_d1 && !in_crossing && (walk_cur_sec > 0)) begin
-                    walk_final_sec <= walk_cur_sec;
-
-                    // 临时算出原始效率 people_count*10 / walk_cur_sec
-                    eff_raw = (people_count * 10) / walk_cur_sec;
-
-                    // 饱和到 0~999
-                    if (eff_raw > 999)
-                        eff_raw = 999;
-                    else if (eff_raw < 0)
-                        eff_raw = 0;
-
-                    eff_val  <= eff_raw[9:0];         // 方便你以后调试
-                    eff_tens <= eff_raw / 100;
-                    eff_ones <= (eff_raw % 100) / 10;
-                    eff_frac <= eff_raw % 10;
+                if (mode_vga == 2'd1) begin
+                    // "上一拍在斑马线，这一拍没人了" -> 一批过街结束
+                    if (in_crossing_d1 && !in_crossing && (walk_cur_sec > 0)) begin
+                        walk_final_sec <= walk_cur_sec;
+                
+                        // ★ 新：计算人均耗时（秒/人），为了保留一位小数，放大10倍
+                        if (people_count > 0)
+                            eff_raw = (walk_cur_sec * 10) / people_count;  // 秒/人 ×10
+                        else
+                            eff_raw = 0;
+                
+                        // 饱和到 0~999（这段保持不变）
+                        if (eff_raw > 999)
+                            eff_raw = 999;
+                        else if (eff_raw < 0)
+                            eff_raw = 0;
+                
+                        eff_val  <= eff_raw[9:0];         // 方便你以后调试
+                        eff_tens <= eff_raw / 100;
+                        eff_ones <= (eff_raw % 100) / 10;
+                        eff_frac <= eff_raw % 10;
+                    end
+                end else begin
+                    // 高峰模式：这些数不用，统一清零（不变）
+                    walk_final_sec <= 8'd0;
+                    eff_tens       <= 4'd0;
+                    eff_ones       <= 4'd0;
+                    eff_frac       <= 4'd0;
+                    eff_val        <= 10'd0;
                 end
-            end else begin
-                // ★ 高峰模式：这些数不用，统一清零
-                walk_final_sec <= 8'd0;
-                eff_tens       <= 4'd0;
-                eff_ones       <= 4'd0;
-                eff_frac       <= 4'd0;
-                eff_val        <= 10'd0;
-            end
         end
     end
 

@@ -426,13 +426,16 @@ wire [1:0] car_bias;
 // 缁跨伅鏃堕暱淇″彿锛堝湪 traffic_adapt2 瀹炰緥鍖栦箣鍓嶅０鏄庯級
 wire [7:0] green_sec_LR_S, green_sec_LR_L, green_sec_LR_R;
 wire [7:0] green_sec_TB_S, green_sec_TB_L, green_sec_TB_R;
-// 鍒犻櫎鍊掕鏃朵互鑺傜渷LUT璧勬簮
-// 浼樺厛绾э細涓や釜閮芥嫧=骞宠　锛涘彧锟?? LR=01锛涘彧锟?? TB=10锛涢兘涓嶆嫧=00
+
+// car_sw_s1 = TB 方向车多
+// car_sw2_s1 = LR 方向车多
+// 约定不变：01 = LR more, 10 = TB more
 assign car_bias =
-    (car_sw_s1 & car_sw2_s1) ? 2'b00 :   // 涓や釜鍚屾椂锟?? 锟?? EQ
-    (car_sw_s1)              ? 2'b01 :   // LR more
-    (car_sw2_s1)             ? 2'b10 :   // TB more
-                               2'b00 ;   // 榛樿 EQ
+    (car_sw_s1 & car_sw2_s1) ? 2'b00 :   // 两个都 1 -> 均衡
+    (car_sw2_s1)             ? 2'b01 :   // LR more（由 car_sw2_s1 控制）
+    (car_sw_s1)              ? 2'b10 :   // TB more（由 car_sw_s1 控制）
+                               2'b00 ;   // 都不拨 -> 均衡
+
 
 
     // ========= ??????? =========
@@ -2405,7 +2408,8 @@ always @(posedge vga_clk) begin
       if (ny_tsd - (CAR_L>>1) > V_VALID) begin
         topy_tsd = tsd_y[i_tsd];
         for (t_tsd=0; t_tsd<N_TSD; t_tsd=t_tsd+1)
-          if (tsd_active[t_tsd] && tsd_y[t_tsd] < topy_tsd && (t_tsd < NUM_TSD)) topy_tsd = tsd_y[t_tsd];
+          if (tsd_active[t_tsd] && tsd_y[t_tsd] < topy_tsd)
+            topy_tsd = tsd_y[t_tsd];
         tsd_x[i_tsd] <= XL_2;
         tsd_y[i_tsd] <= topy_tsd - GAP_SPAWN;
       end
